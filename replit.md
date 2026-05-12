@@ -15,9 +15,9 @@ A SaaS mobile app for barbershop management — clients book appointments, admin
 
 - pnpm workspaces, Node.js 24, TypeScript 5.9
 - Mobile: Expo (SDK 54), Expo Router v6, React Native 0.81
-- State: AsyncStorage for persistence, React Context for shared state
-- API: Express 5 (backend stub; currently unused by mobile)
-- DB: PostgreSQL + Drizzle ORM (not yet wired to mobile)
+- State: React Context; auth uses real API + Bearer token in AsyncStorage; business data still on AsyncStorage (Phase 2 will migrate)
+- API: Express 5 with bcryptjs + DB-backed sessions (Bearer token + httpOnly cookie)
+- DB: PostgreSQL + Drizzle ORM — schema for all entities pushed; auth tables in use
 - Build: esbuild (CJS bundle for API server)
 
 ## Where things live
@@ -35,7 +35,8 @@ A SaaS mobile app for barbershop management — clients book appointments, admin
 
 ## Architecture decisions
 
-- AsyncStorage used for all data persistence in mobile first build (no backend required)
+- Auth: real multi-tenant via Postgres. `register-shop` creates shop + admin + 7-day trial; `register-client` creates client+user inside an existing shop slug; sessions stored in DB, token returned to client and used as `Authorization: Bearer`.
+- Business data (services, professionals, appointments, clients, cash, loyalty): still in AsyncStorage for now — Phase 2 will move them to API/Postgres. New shops registered via API will have empty data until Phase 2 lands.
 - Two distinct role flows: `client` → `(client)` tabs, `admin` → `(admin)` tabs, routing done in `app/index.tsx`
 - Demo accounts seeded in AuthContext for easy testing without registration
 - Appointment booking is a 4-step modal flow (services → professional → date/time → confirm)
@@ -56,7 +57,8 @@ A SaaS mobile app for barbershop management — clients book appointments, admin
 
 - Always run `pnpm --filter @workspace/api-spec run codegen` after OpenAPI spec changes before using generated hooks
 - The `(tabs)` scaffold directory was removed and replaced with `(client)` and `(admin)` route groups
-- Demo login: admin@barberpro.com / admin123, client: joao@email.com / 123456
+- Demo login (now backed by Postgres, slug `primeiro_nucleo`): admin@barberpro.com / admin123, client joao@email.com / 123456
+- Employee management, premium upgrade, and `barbershopUsers` lookup are stubbed in AuthContext (returning empty / no-op) until Phase 2 wires real endpoints — the Services screen's "Equipe" tab will show no users.
 - Expo web preview may appear blank on first load — the native preview via Expo Go QR code is the source of truth
 
 ## Pointers

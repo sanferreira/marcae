@@ -3,34 +3,252 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: BarberPro API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
-    description: Health operations
+  - name: auth
+  - name: barbershops
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
           content:
             application/json:
-              schema:
-                $ref: "#/components/schemas/HealthStatus"
+              schema: { $ref: "#/components/schemas/HealthStatus" }
+
+  /auth/register-shop:
+    post:
+      operationId: registerShop
+      tags: [auth]
+      summary: Register a new barbershop and admin account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RegisterShopInput" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthSession" }
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "409":
+          description: Slug already in use
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  /auth/register-client:
+    post:
+      operationId: registerClient
+      tags: [auth]
+      summary: Register a new client account in an existing barbershop
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RegisterClientInput" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthSession" }
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "404":
+          description: Barbershop not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "409":
+          description: Email already in use
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Login (slug + email + password)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LoginInput" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthSession" }
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Logout (invalidate current session)
+      responses:
+        "204":
+          description: Logged out
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current authenticated user + barbershop + plan status
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthSession" }
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  /barbershops/{slug}/exists:
+    get:
+      operationId: checkBarbershopSlug
+      tags: [barbershops]
+      summary: Check whether a barbershop slug exists (used by client signup flow)
+      parameters:
+        - in: path
+          name: slug
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BarbershopLookup" }
+
 components:
   schemas:
     HealthStatus:
       type: object
       properties:
-        status:
-          type: string
-      required:
-        - status
+        status: { type: string }
+      required: [status]
 
+    ErrorResponse:
+      type: object
+      properties:
+        error: { type: string }
+      required: [error]
+
+    RegisterShopInput:
+      type: object
+      properties:
+        slug: { type: string, minLength: 2 }
+        name: { type: string, minLength: 1 }
+        ownerName: { type: string, minLength: 1 }
+        ownerEmail: { type: string, format: email }
+        password: { type: string, minLength: 6 }
+        phone: { type: string }
+      required: [slug, name, ownerName, ownerEmail, password]
+
+    RegisterClientInput:
+      type: object
+      properties:
+        slug: { type: string, minLength: 2 }
+        name: { type: string, minLength: 1 }
+        email: { type: string, format: email }
+        phone: { type: string }
+        password: { type: string, minLength: 6 }
+      required: [slug, name, email, phone, password]
+
+    LoginInput:
+      type: object
+      properties:
+        slug: { type: string, minLength: 2 }
+        email: { type: string, format: email }
+        password: { type: string, minLength: 1 }
+      required: [slug, email, password]
+
+    Barbershop:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        slug: { type: string }
+        name: { type: string }
+        ownerName: { type: string }
+        ownerEmail: { type: string }
+        phone: { type: string, nullable: true }
+        address: { type: string, nullable: true }
+        plan:
+          type: string
+          enum: [trial, premium, expired]
+        trialEndsAt: { type: string, format: date-time }
+        subscriptionRenewsAt: { type: string, format: date-time, nullable: true }
+        createdAt: { type: string, format: date-time }
+      required: [id, slug, name, ownerName, ownerEmail, plan, trialEndsAt, createdAt]
+
+    BarbershopLookup:
+      type: object
+      properties:
+        exists: { type: boolean }
+        name: { type: string, nullable: true }
+      required: [exists]
+
+    AuthUser:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        barbershopId: { type: string, format: uuid }
+        role:
+          type: string
+          enum: [admin, employee, client]
+        name: { type: string }
+        email: { type: string }
+        phone: { type: string, nullable: true }
+        professionalId: { type: string, format: uuid, nullable: true }
+        clientId: { type: string, format: uuid, nullable: true }
+        createdAt: { type: string, format: date-time }
+      required: [id, barbershopId, role, name, email, createdAt]
+
+    PlanStatus:
+      type: object
+      properties:
+        plan:
+          type: string
+          enum: [trial, premium, expired]
+        trialDaysLeft: { type: integer }
+        isActive: { type: boolean }
+        isPremium: { type: boolean }
+        trialEndsAt: { type: string, format: date-time }
+      required: [plan, trialDaysLeft, isActive, isPremium, trialEndsAt]
+
+    AuthSession:
+      type: object
+      properties:
+        token: { type: string }
+        user: { $ref: "#/components/schemas/AuthUser" }
+        barbershop: { $ref: "#/components/schemas/Barbershop" }
+        planStatus: { $ref: "#/components/schemas/PlanStatus" }
+      required: [token, user, barbershop, planStatus]
