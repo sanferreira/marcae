@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { apiFetch, setToken } from "@/lib/api";
+import { registerDeviceForPush, unregisterDeviceForPush } from "@/lib/push";
 
 export type UserRole = "client" | "employee" | "admin";
 
@@ -81,7 +82,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     (async () => {
       const r = await apiFetch<AuthSession>("/auth/me");
-      if (r.ok) setSession(r.data);
+      if (r.ok) {
+        setSession(r.data);
+        // Re-register push token on hydrate so token rotations get captured.
+        void registerDeviceForPush().catch(() => undefined);
+      }
       setIsLoading(false);
     })();
   }, []);
@@ -89,6 +94,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const persistSession = useCallback(async (s: AuthSession | null) => {
     setSession(s);
     await setToken(s?.token ?? null);
+    if (s) void registerDeviceForPush().catch(() => undefined);
   }, []);
 
   const login: AuthContextType["login"] = async (slug, email, password) => {
@@ -99,6 +105,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = async () => {
+    await unregisterDeviceForPush().catch(() => undefined);
     await apiFetch<void>("/auth/logout", { method: "POST" });
     await persistSession(null);
   };

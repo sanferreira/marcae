@@ -2,12 +2,14 @@ import { Router, type IRouter, type Request, type Response } from "express";
 import { and, eq, inArray, desc } from "drizzle-orm";
 import {
   db, appointmentsTable, appointmentServicesTable, clientsTable,
-  professionalsTable, servicesTable,
+  professionalsTable, servicesTable, usersTable,
   loyaltySettingsTable, loyaltyMovementsTable,
 } from "@workspace/db";
+import { or, isNotNull } from "drizzle-orm";
 import { requireAuth } from "../lib/auth";
 import { AppointmentCreate, AppointmentUpdate } from "../lib/schemas";
 import { serializeAppointment } from "../lib/serializers";
+import { sendExpoPush } from "../lib/push";
 
 const router: IRouter = Router();
 router.use(requireAuth);
@@ -105,8 +107,43 @@ router.post("/appointments", async (req: Request, res: Response): Promise<void> 
       serviceDuration: s.duration,
     })),
   ).returning();
+
+  // Notify the employee linked to this professional + all admins of the shop.
+  // Fire-and-forget so we don't block the response on Expo's push service.
+  // Wrapped in try/catch so a DB or network error here can never crash the process
+  // or affect the appointment-creation response.
+  void (async () => {
+    try {
+      const recipients = await db.select({ token: usersTable.expoPushToken })
+        .from(usersTable)
+        .where(and(
+          eq(usersTable.barbershopId, shop),
+          isNotNull(usersTable.expoPushToken),
+          or(eq(usersTable.role, "admin"), eq(usersTable.professionalId, parsed.data.professionalId)),
+        ));
+      const serviceNames = parsed.data.services.map((s) => s.name).join(" + ");
+      const dateLabel = formatDateBR(parsed.data.date);
+      const tokens = Array.from(new Set(
+        recipients.map((r) => r.token).filter((t): t is string => !!t),
+      ));
+      await sendExpoPush(tokens.map((to) => ({
+        to,
+        title: "Novo agendamento",
+        body: `${parsed.data.clientName} marcou ${serviceNames} com ${parsed.data.professionalName} em ${dateLabel} às ${parsed.data.time}.`,
+        data: { type: "appointment.created", appointmentId: appt.id },
+      })));
+    } catch (err) {
+      req.log.warn({ err, appointmentId: appt.id }, "failed to dispatch appointment push notifications");
+    }
+  })();
+
   res.status(201).json(serializeAppointment(appt, services));
 });
+
+function formatDateBR(iso: string): string {
+  const [y, m, d] = iso.split("-");
+  return `${d}/${m}/${y}`;
+}
 
 router.patch("/appointments/:id", async (req: Request, res: Response): Promise<void> => {
   const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;

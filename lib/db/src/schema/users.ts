@@ -11,6 +11,7 @@ export const usersTable = pgTable("users", {
   passwordHash: text("password_hash").notNull(),
   professionalId: uuid("professional_id"), // optional FK added later
   clientId: uuid("client_id"), // optional FK added later
+  expoPushToken: text("expo_push_token"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => ({
   uniqEmail: uniqueIndex("users_barbershop_email_uq").on(t.barbershopId, t.email),

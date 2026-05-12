@@ -11,6 +11,7 @@ import {
 import { hashPassword, verifyPassword } from "../lib/password";
 import { createSession, destroySession, SESSION_COOKIE } from "../lib/sessions";
 import { computePlanStatus, serializeBarbershop, serializeUser, slugify } from "../lib/serializers";
+import { requireAuth } from "../lib/auth";
 
 const router: IRouter = Router();
 
@@ -164,6 +165,18 @@ router.get("/barbershops/:slug/exists", async (req: Request, res: Response): Pro
   const slug = slugify(raw);
   const [shop] = await db.select().from(barbershopsTable).where(eq(barbershopsTable.slug, slug)).limit(1);
   res.json({ exists: !!shop, name: shop?.name ?? null });
+});
+
+router.post("/auth/push-token", requireAuth, async (req: Request, res: Response): Promise<void> => {
+  const token = typeof req.body?.token === "string" ? req.body.token.trim() : "";
+  if (token && !token.startsWith("ExponentPushToken")) {
+    res.status(400).json({ error: "Token de push inválido." });
+    return;
+  }
+  await db.update(usersTable)
+    .set({ expoPushToken: token || null })
+    .where(eq(usersTable.id, req.auth!.user.id));
+  res.json({ ok: true });
 });
 
 export default router;
