@@ -1,0 +1,8 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "Y6KwUc6hEp3vJ4sO0tL35"
+uri = "file://artifacts/mobile/assets/images/icon.png"
+type = "image"
+title = "barberpro app icon"

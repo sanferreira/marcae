@@ -1,0 +1,204 @@
+Crie um sistema web de prestação de serviços, inicialmente focado em barbearias, mas com estrutura flexível para futuramente atender outros tipos de negócios como salão de beleza, estética, manicure, clínicas, lava-rápido e serviços agendáveis.
+
+O sistema deve permitir que clientes realizem agendamentos de horários com barbeiros/profissionais disponíveis. O cliente deve escolher o serviço desejado, o profissional, a data e o horário. O sistema deve verificar automaticamente se o horário está disponível antes de confirmar o agendamento.
+
+O sistema deve possuir dois tipos principais de acesso:
+
+1. Cliente
+2. Administrador/Barbearia/Profissional
+
+Funcionalidades para o cliente:
+
+- Cadastro e login do cliente.
+- Visualização dos serviços disponíveis, como:
+  - Corte de cabelo
+  - Barba
+  - Bigode
+  - Sobrancelha
+  - Hidratação
+  - Produtos vendidos pela barbearia
+  - Combos de serviços
+- Escolha do profissional/barbeiro.
+- Escolha de data e horário disponível.
+- Confirmação de agendamento.
+- Histórico de atendimentos realizados.
+- Programa de fidelidade: a cada X cortes ou serviços realizados, o cliente ganha um serviço gratuito ou desconto.
+- Visualização do progresso no programa de fidelidade, por exemplo:
+  "Você possui 4 de 10 cortes. Faltam 6 para ganhar um corte grátis."
+- Possibilidade de cancelar ou reagendar horário, conforme regra da barbearia.
+- Recebimento de confirmação por WhatsApp, e-mail ou notificação.
+
+Funcionalidades para o administrador/barbearia:
+
+- Dashboard com resumo geral do mês:
+  - Total faturado
+  - Total de serviços realizados
+  - Total de produtos vendidos
+  - Quantidade de clientes atendidos
+  - Quantidade de agendamentos confirmados
+  - Quantidade de cancelamentos
+  - Serviços mais vendidos
+  - Profissional com maior faturamento
+- Cadastro de profissionais/barbeiros.
+- Cadastro de horários de atendimento de cada barbeiro.
+- Bloqueio de horários específicos, como folgas, almoço, feriados ou compromissos.
+- Cadastro e edição de serviços:
+  - Nome do serviço
+  - Valor
+  - Duração média
+  - Descrição
+  - Status ativo/inativo
+- Cadastro de produtos vendidos na barbearia:
+  - Nome do produto
+  - Valor de venda
+  - Custo
+  - Estoque
+  - Categoria
+- Registro manual de atendimento feito pelo barbeiro:
+  - Cliente atendido
+  - Serviços realizados
+  - Produtos vendidos
+  - Valor total
+  - Forma de pagamento
+  - Profissional responsável
+  - Data e horário
+- Controle financeiro:
+  - Entradas do dia
+  - Entradas do mês
+  - Faturamento por profissional
+  - Faturamento por serviço
+  - Faturamento por produto
+  - Relatório de comissão dos barbeiros
+  - Formas de pagamento usadas: dinheiro, PIX, cartão de crédito, cartão de débito
+- Gestão do programa de fidelidade:
+  - Configurar quantos cortes são necessários para ganhar um benefício
+  - Definir qual benefício será liberado
+  - Ver quais clientes estão próximos de ganhar
+  - Registrar uso do benefício
+  - Histórico de benefícios concedidos
+- Gestão de clientes:
+  - Nome
+  - Telefone
+  - E-mail
+  - Data de nascimento
+  - Histórico de serviços
+  - Total gasto
+  - Última visita
+  - Frequência de atendimento
+  - Observações internas
+- Relatórios:
+  - Relatório diário
+  - Relatório semanal
+  - Relatório mensal
+  - Clientes mais frequentes
+  - Clientes inativos
+  - Ticket médio
+  - Serviços mais lucrativos
+  - Produtos mais vendidos
+  - Horários com maior movimento
+- Controle de caixa:
+  - Abertura de caixa
+  - Fechamento de caixa
+  - Sangria
+  - Reforço de caixa
+  - Diferença de caixa
+- Controle de estoque:
+  - Entrada de produtos
+  - Saída por venda
+  - Baixa manual
+  - Alerta de estoque baixo
+  - Custo do produto
+  - Lucro por produto vendido
+
+Regras importantes:
+
+- O cliente só pode marcar horário se existir disponibilidade.
+- Um mesmo barbeiro não pode ter dois atendimentos no mesmo horário.
+- Cada serviço deve ter uma duração configurável, para bloquear corretamente a agenda.
+- O sistema deve permitir agendamentos com múltiplos serviços no mesmo horário, somando a duração total.
+- O cliente só acumula pontos/cortes no programa de fidelidade quando o atendimento for marcado como concluído.
+- O benefício de fidelidade deve ser registrado para evitar uso duplicado.
+- O administrador pode alterar manualmente o saldo de fidelidade do cliente, com registro em histórico.
+- O sistema deve diferenciar serviços pagos de serviços gratuitos por fidelidade.
+- O sistema deve permitir que cada barbearia configure suas próprias regras de fidelidade.
+
+Ideias extras para deixar o sistema mais completo:
+
+- Envio automático de lembrete para o cliente antes do horário.
+- Confirmação automática via WhatsApp.
+- Lista de espera caso o horário desejado esteja ocupado.
+- Avaliação do atendimento após o serviço.
+- Perfil público da barbearia com link para agendamento.
+- Página com catálogo de serviços.
+- Página com profissionais e especialidades.
+- Sistema de comissão para barbeiros.
+- Comissão diferente por serviço ou produto.
+- Ranking de profissionais.
+- Cupons de desconto.
+- Aniversariantes do mês.
+- Campanhas para clientes inativos.
+- Plano de assinatura mensal, por exemplo:
+  "Corte ilimitado por R$ X/mês"
+  ou
+  "4 cortes por mês por R$ X"
+- Controle de metas mensais da barbearia.
+- Relatório comparativo entre meses.
+- Multiunidades, caso a barbearia tenha mais de uma loja.
+- Permissão por cargo:
+  - Dono
+  - Gerente
+  - Barbeiro
+  - Recepcionista
+- Registro de despesas:
+  - Aluguel
+  - Produtos
+  - Água
+  - Luz
+  - Internet
+  - Comissões
+  - Outros custos
+- Cálculo de lucro real:
+  faturamento menos despesas.
+- Impressão ou envio de recibo.
+- Integração com pagamento online.
+- Integração com Google Agenda.
+- Integração futura com WhatsApp Business API.
+- Modo SaaS para vender o sistema para várias barbearias, cada uma com seu próprio painel, usuários, serviços, clientes e relatórios.
+
+Requisitos técnicos sugeridos:
+
+- O sistema deve ser responsivo para funcionar bem em celular, tablet e desktop.
+- O painel administrativo deve ter interface simples e objetiva.
+- O agendamento deve ser rápido, com poucos passos.
+- O sistema deve ter autenticação segura.
+- O banco de dados deve ser estruturado para suportar múltiplas barbearias no futuro.
+- Deve existir separação entre dados de cada barbearia.
+- Deve haver logs de ações importantes, como alteração de valores, cancelamento de agendamento, uso de benefício e fechamento de caixa.
+
+Sugestão de entidades principais do banco de dados:
+
+- users
+- barbershops
+- professionals
+- customers
+- services
+- products
+- appointments
+- appointment_services
+- sales
+- sale_items
+- payments
+- loyalty_rules
+- loyalty_movements
+- cash_registers
+- expenses
+- commissions
+- schedules
+- blocked_times
+- reviews
+- roles
+- permissions
+
+Objetivo final:
+
+Criar um sistema SaaS moderno para gestão de barbearias, começando com agendamento online, controle financeiro, serviços, produtos, programa de fidelidade e gestão mensal. O sistema deve ser simples para o cliente marcar horário e completo para o dono da barbearia acompanhar faturamento, atendimentos, estoque, barbeiros, clientes e crescimento do negócio.
