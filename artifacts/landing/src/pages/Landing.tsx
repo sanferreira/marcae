@@ -195,10 +195,10 @@ function Nav() {
           ))}
         </nav>
         <div className="hidden md:flex items-center gap-3">
-          <a href="#preco" className="text-[14px] font-semibold text-[var(--color-ink)] hover:text-[var(--color-gold-deep)]">
+          <a href="/" className="text-[14px] font-semibold text-[var(--color-ink)] hover:text-[var(--color-gold-deep)]">
             Entrar
           </a>
-          <a href="#preco" className="btn-primary text-sm" style={{ padding: "10px 18px" }}>
+          <a href="/" className="btn-primary text-sm" style={{ padding: "10px 18px" }}>
             Começar grátis
             <ArrowRight className="w-4 h-4" />
           </a>
@@ -223,7 +223,7 @@ function Nav() {
               {n.label}
             </a>
           ))}
-          <a href="#preco" onClick={() => setOpen(false)} className="btn-primary w-full justify-center">
+          <a href="/" onClick={() => setOpen(false)} className="btn-primary w-full justify-center">
             Começar grátis <ArrowRight className="w-4 h-4" />
           </a>
         </div>
@@ -271,8 +271,8 @@ function Hero() {
             Agenda, clientes, financeiro e fidelidade no mesmo app. O BarberPro cuida da bagunça pra você cuidar do que importa: cortar cabelo.
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-3">
-            <a href="#preco" className="btn-primary">
-              Começar 7 dias grátis
+            <a href="/" className="btn-primary">
+              Abrir o sistema · 7 dias grátis
               <ArrowRight className="w-4 h-4" />
             </a>
             <a href="#como-funciona" className="btn-secondary">
@@ -501,7 +501,7 @@ function Pricing() {
               ))}
             </ul>
 
-            <a href="#" className="block w-full text-center btn-primary justify-center">
+            <a href="/" className="block w-full text-center btn-primary justify-center">
               Começar agora
               <ArrowRight className="w-4 h-4" />
             </a>
@@ -586,8 +586,8 @@ function FinalCta() {
               Comece agora, sem cartão, sem instalar nada. Em 5 minutos sua barbearia está pronta para receber agendamentos.
             </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-              <a href="#" className="btn-primary">
-                Começar 7 dias grátis
+              <a href="/" className="btn-primary">
+                Abrir o sistema agora
                 <ArrowRight className="w-4 h-4" />
               </a>
               <a href="#faq" className="text-[14px] font-semibold text-white/80 hover:text-white px-4 py-3">
