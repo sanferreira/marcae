@@ -21,10 +21,85 @@ import PhoneMockup from "../components/PhoneMockup";
 
 const NAV = [
   { label: "Recursos", href: "#recursos" },
+  { label: "Ramos", href: "#ramos" },
   { label: "Para quem é", href: "#papeis" },
-  { label: "Como funciona", href: "#como-funciona" },
   { label: "Preço", href: "#preco" },
   { label: "Dúvidas", href: "#faq" },
+];
+
+const NICHES = [
+  {
+    title: "Barbearia",
+    body: "Cadeira, barbeiro e combo corte + barba separados.",
+    rows: [
+      { k: "Cadeira 2", v: "Caio" },
+      { k: "Corte + barba", v: "R$ 80" },
+      { k: "Duração", v: "50 min" },
+    ],
+  },
+  {
+    title: "Salão",
+    body: "Coloração, química e retoque com tempo de pausa entre etapas.",
+    rows: [
+      { k: "Marina", v: "VIP · 6 visitas" },
+      { k: "Coloração", v: "loiro 8.0 + matiz" },
+      { k: "Próxima", v: "sex 14h · 2h" },
+    ],
+  },
+  {
+    title: "Estética",
+    body: "Anamnese, pacotes auto-agendados e ficha por sessão.",
+    rows: [
+      { k: "Fototipo", v: "III · Fitzpatrick" },
+      { k: "Pacote", v: "axilas · 6/10" },
+      { k: "Próxima", v: "qua 15h" },
+    ],
+  },
+  {
+    title: "Cílios",
+    body: "Estilo, mapping, manutenção quinzenal e antes/depois.",
+    rows: [
+      { k: "Estilo", v: "volume russo D" },
+      { k: "Manutenção", v: "a cada 18 dias" },
+      { k: "Próxima", v: "ter 10h" },
+    ],
+  },
+  {
+    title: "Sobrancelha",
+    body: "Design, henna, formato e ficha com fotos do antes.",
+    rows: [
+      { k: "Design", v: "fio a fio" },
+      { k: "Henna", v: "castanho médio" },
+      { k: "Próxima", v: "qui 16h" },
+    ],
+  },
+  {
+    title: "Unha",
+    body: "Esmaltação, gel, fibra e controle de manutenção.",
+    rows: [
+      { k: "Pacote", v: "gel mão + pé" },
+      { k: "Manutenção", v: "21 dias" },
+      { k: "Próxima", v: "sex 11h" },
+    ],
+  },
+  {
+    title: "Tatuagem",
+    body: "Referência, região do corpo e orçamento por sessão.",
+    rows: [
+      { k: "Referência", v: "fine line" },
+      { k: "Antebraço", v: "2 sessões" },
+      { k: "Sessão", v: "R$ 650" },
+    ],
+  },
+  {
+    title: "Massagem",
+    body: "Tipo, duração e ficha com pontos de tensão do cliente.",
+    rows: [
+      { k: "Modalidade", v: "relaxante" },
+      { k: "Duração", v: "60 min" },
+      { k: "Próxima", v: "sáb 09h" },
+    ],
+  },
 ];
 
 const MARQUEE_ITEMS = [
@@ -88,7 +163,7 @@ const ROLES = [
       "Acompanha pontos de fidelidade",
       "Vê o histórico de cada atendimento",
     ],
-    accent: "from-[#F1ECE3] to-[#FAF7F2]",
+    accent: "from-[#ECE6D5] to-[#F5F1E8]",
   },
   {
     tag: "Funcionário",
@@ -99,7 +174,7 @@ const ROLES = [
       "Acompanha comissão em tempo real",
       "Acessa histórico do cliente antes do atendimento",
     ],
-    accent: "from-[#0C0C0C] to-[#1A1A1A]",
+    accent: "from-[#3F4F24] to-[#556B2F]",
     dark: true,
   },
   {
@@ -111,7 +186,7 @@ const ROLES = [
       "Fecha o caixa por dia, semana ou mês",
       "Acompanha lucro por forma de pagamento",
     ],
-    accent: "from-[#F1ECE3] to-[#FAF7F2]",
+    accent: "from-[#ECE6D5] to-[#F5F1E8]",
   },
 ];
 
@@ -169,6 +244,7 @@ export default function Landing() {
         <Hero />
         <Stats />
         <Features />
+        <Niches />
         <Roles />
         <HowItWorks />
         <Pricing />
@@ -280,7 +356,7 @@ function Hero() {
           </div>
           <div className="mt-8 flex items-center gap-5">
             <div className="flex -space-x-2">
-              {["#C9A96E", "#0C0C0C", "#A8884E", "#1A1A1A"].map((c, i) => (
+              {["#556B2F", "#C49A4A", "#3F4F24", "#A07A30"].map((c, i) => (
                 <div key={i} className="w-8 h-8 rounded-full border-2 border-[var(--color-cream)]" style={{ background: c }} />
               ))}
             </div>
@@ -301,7 +377,8 @@ function Hero() {
       </div>
 
       {/* subtle gold gradient bg blob */}
-      <div className="pointer-events-none absolute -top-20 -right-20 w-[500px] h-[500px] rounded-full opacity-40" style={{ background: "radial-gradient(circle, rgba(201,169,110,.18), transparent 70%)" }} />
+      <div className="pointer-events-none absolute -top-20 -right-20 w-[500px] h-[500px] rounded-full opacity-40" style={{ background: "radial-gradient(circle, rgba(85,107,47,.18), transparent 70%)" }} />
+      <div className="pointer-events-none absolute -bottom-32 -left-32 w-[420px] h-[420px] rounded-full opacity-30" style={{ background: "radial-gradient(circle, rgba(196,154,74,.20), transparent 70%)" }} />
     </section>
   );
 }
@@ -354,6 +431,57 @@ function Features() {
             );
           })}
         </div>
+      </div>
+    </section>
+  );
+}
+
+function Niches() {
+  return (
+    <section id="ramos" className="py-20 md:py-28 bg-[var(--color-cream-dark)]/50">
+      <div className="max-w-6xl mx-auto px-5 md:px-8">
+        <div className="max-w-2xl mb-12 md:mb-16">
+          <span className="section-eyebrow">Feito pro seu ramo</span>
+          <h2 className="font-display font-bold text-[36px] md:text-[52px] leading-[1] text-[var(--color-ink)]">
+            Cada ramo tem suas manias. O Marcaê respeita.
+          </h2>
+          <p className="mt-5 text-[17px] text-[var(--color-muted)] leading-relaxed">
+            O núcleo é o mesmo — a ficha do cliente e os campos de cada atendimento se ajustam ao que você atende.
+          </p>
+        </div>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {NICHES.map((n) => (
+            <div
+              key={n.title}
+              className="card-soft p-6 flex flex-col hover:border-[var(--color-olive)] transition-colors"
+            >
+              <h3 className="font-display font-bold text-[20px] text-[var(--color-ink)] mb-2">
+                {n.title}
+              </h3>
+              <p className="text-[13.5px] text-[var(--color-muted)] leading-relaxed mb-5">
+                {n.body}
+              </p>
+              <div className="mt-auto rounded-2xl bg-[var(--color-cream)] border border-[var(--color-line-soft)] p-4 space-y-2">
+                {n.rows.map((r, i) => (
+                  <div
+                    key={r.k}
+                    className={`flex items-baseline justify-between gap-3 ${i > 0 ? "pt-2 border-t border-[var(--color-line-soft)]" : ""}`}
+                  >
+                    <span className="text-[11.5px] uppercase tracking-wider text-[var(--color-muted)] font-medium">
+                      {r.k}
+                    </span>
+                    <span className="text-[13px] text-[var(--color-ink)] font-semibold text-right">
+                      {r.v}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+        <p className="mt-10 text-center text-[14px] text-[var(--color-muted)]">
+          Não viu seu ramo aqui? <a href="/register-shop" className="text-[var(--color-olive)] font-semibold hover:underline">Teste grátis mesmo assim</a> — o Marcaê funciona pra qualquer profissional que marca hora.
+        </p>
       </div>
     </section>
   );
@@ -573,7 +701,8 @@ function FinalCta() {
     <section className="py-20 md:py-28">
       <div className="max-w-5xl mx-auto px-5 md:px-8">
         <div className="rounded-[32px] bg-[var(--color-ink)] text-white p-10 md:p-16 text-center relative overflow-hidden">
-          <div className="absolute -top-32 -right-32 w-[400px] h-[400px] rounded-full" style={{ background: "radial-gradient(circle, rgba(201,169,110,.25), transparent 70%)" }} />
+          <div className="absolute -top-32 -right-32 w-[400px] h-[400px] rounded-full" style={{ background: "radial-gradient(circle, rgba(196,154,74,.28), transparent 70%)" }} />
+          <div className="absolute -bottom-32 -left-24 w-[340px] h-[340px] rounded-full" style={{ background: "radial-gradient(circle, rgba(85,107,47,.22), transparent 70%)" }} />
           <div className="relative">
             <Settings2 className="w-8 h-8 text-[var(--color-gold)] mx-auto mb-6" />
             <h2 className="font-display font-bold text-[36px] md:text-[56px] leading-[1] tracking-tight">
