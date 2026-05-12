@@ -11,6 +11,8 @@ export const barbershopsTable = pgTable("barbershops", {
   plan: text("plan").notNull().default("trial"),
   trialEndsAt: timestamp("trial_ends_at", { withTimezone: true }).notNull(),
   subscriptionRenewsAt: timestamp("subscription_renews_at", { withTimezone: true }),
+  stripeCustomerId: text("stripe_customer_id"),
+  stripeSubscriptionId: text("stripe_subscription_id"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

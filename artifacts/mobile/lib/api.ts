@@ -16,7 +16,15 @@ export async function setToken(token: string | null): Promise<void> {
 }
 
 export interface ApiResult<T> { ok: true; data: T } 
-export interface ApiError { ok: false; status: number; error: string }
+export interface ApiError { ok: false; status: number; error: string; code?: string }
+
+/** Listener notified whenever the API returns 402 (subscription required). */
+type Sub402Listener = () => void;
+const sub402Listeners = new Set<Sub402Listener>();
+export function onSubscriptionRequired(fn: Sub402Listener): () => void {
+  sub402Listeners.add(fn);
+  return () => sub402Listeners.delete(fn);
+}
 
 export async function apiFetch<T>(
   path: string,
@@ -42,10 +50,14 @@ export async function apiFetch<T>(
   let payload: unknown = null;
   try { payload = await res.json(); } catch { /* ignore */ }
   if (!res.ok) {
-    const err = (payload && typeof payload === "object" && "error" in payload && typeof (payload as { error: unknown }).error === "string")
-      ? (payload as { error: string }).error
-      : `Erro ${res.status}`;
-    return { ok: false, status: res.status, error: err };
+    const obj = (payload && typeof payload === "object") ? (payload as Record<string, unknown>) : {};
+    const err = typeof obj.error === "string" ? (obj.error as string) : `Erro ${res.status}`;
+    const code = typeof obj.code === "string" ? (obj.code as string) : undefined;
+    if (res.status === 402) {
+      // Notify any subscription gates so the UI can route to /upgrade.
+      for (const fn of sub402Listeners) { try { fn(); } catch { /* ignore */ } }
+    }
+    return { ok: false, status: res.status, error: err, code };
   }
   return { ok: true, data: payload as T };
 }

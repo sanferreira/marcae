@@ -8,13 +8,19 @@ import clientsRouter from "./clients";
 import appointmentsRouter from "./appointments";
 import cashEntriesRouter from "./cashEntries";
 import employeesRouter from "./employees";
+import billingRouter from "./billing";
 import devRouter from "./dev";
+import { requirePremiumForMutations } from "../lib/billing";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
 router.use(devRouter);
 router.use(authRouter);
+router.use(billingRouter);
+// Block mutating endpoints when the shop's subscription is expired.
+// Reads still work so users can review their data.
+router.use(requirePremiumForMutations);
 router.use(servicesRouter);
 router.use(productsRouter);
 router.use(professionalsRouter);

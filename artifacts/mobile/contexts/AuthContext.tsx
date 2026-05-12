@@ -1,4 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import * as WebBrowser from "expo-web-browser";
 import { apiFetch, setToken } from "@/lib/api";
 import { registerDeviceForPush, unregisterDeviceForPush } from "@/lib/push";
 
@@ -66,7 +67,9 @@ interface AuthContextType {
     professionalId: string; name: string; email: string; password: string; phone?: string;
   }) => Promise<{ ok: boolean; error?: string }>;
   removeEmployeeUser: (userId: string) => Promise<void>;
-  upgradeToPremium: () => Promise<void>;
+  upgradeToPremium: () => Promise<{ ok: boolean; error?: string }>;
+  openBillingPortal: () => Promise<{ ok: boolean; error?: string }>;
+  refreshSession: () => Promise<void>;
   cancelSubscription: () => Promise<void>;
 }
 
@@ -129,8 +132,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const upsertEmployeeUser: AuthContextType["upsertEmployeeUser"] = async () =>
     ({ ok: false, error: "Em breve: gerencie funcionários no painel completo." });
   const removeEmployeeUser: AuthContextType["removeEmployeeUser"] = async () => { /* noop */ };
-  const upgradeToPremium = async () => { /* TODO Stripe */ };
-  const cancelSubscription = async () => { /* TODO Stripe */ };
+
+  const refreshSession = useCallback(async () => {
+    const r = await apiFetch<AuthSession>("/auth/me");
+    if (r.ok) setSession(r.data);
+  }, []);
+
+  const upgradeToPremium: AuthContextType["upgradeToPremium"] = useCallback(async () => {
+    const r = await apiFetch<{ url: string }>("/billing/checkout", { method: "POST", body: {} });
+    if (!r.ok) return { ok: false, error: r.error };
+    try {
+      await WebBrowser.openBrowserAsync(r.data.url);
+    } catch (err) {
+      return { ok: false, error: (err as Error).message ?? "Não foi possível abrir o pagamento." };
+    }
+    // Best-effort sync — the user may close the browser without paying.
+    await apiFetch("/billing/sync", { method: "POST", body: {} });
+    await refreshSession();
+    return { ok: true };
+  }, [refreshSession]);
+
+  const openBillingPortal: AuthContextType["openBillingPortal"] = useCallback(async () => {
+    const r = await apiFetch<{ url: string }>("/billing/portal", { method: "POST", body: {} });
+    if (!r.ok) return { ok: false, error: r.error };
+    try { await WebBrowser.openBrowserAsync(r.data.url); }
+    catch (err) { return { ok: false, error: (err as Error).message }; }
+    await apiFetch("/billing/sync", { method: "POST", body: {} });
+    await refreshSession();
+    return { ok: true };
+  }, [refreshSession]);
+
+  const cancelSubscription = async () => { /* handled via Stripe portal */ };
 
   return (
     <AuthContext.Provider value={{
@@ -142,7 +174,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       login, logout,
       registerBarbershop, registerClient,
       upsertEmployeeUser, removeEmployeeUser,
-      upgradeToPremium, cancelSubscription,
+      upgradeToPremium, openBillingPortal, refreshSession, cancelSubscription,
     }}>
       {children}
     </AuthContext.Provider>

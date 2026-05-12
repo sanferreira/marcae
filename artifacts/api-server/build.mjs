@@ -30,6 +30,10 @@ async function buildAll() {
     external: [
       "*.node",
       "sharp",
+      // stripe-replit-sync ships SQL migration files alongside its dist; bundling
+      // breaks the relative path lookup at runtime.
+      "stripe-replit-sync",
+      "pg",
       "better-sqlite3",
       "sqlite3",
       "canvas",
