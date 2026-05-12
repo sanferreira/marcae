@@ -15,9 +15,9 @@ A SaaS mobile app for barbershop management — clients book appointments, admin
 
 - pnpm workspaces, Node.js 24, TypeScript 5.9
 - Mobile: Expo (SDK 54), Expo Router v6, React Native 0.81
-- State: React Context; auth uses real API + Bearer token in AsyncStorage; business data still on AsyncStorage (Phase 2 will migrate)
-- API: Express 5 with bcryptjs + DB-backed sessions (Bearer token + httpOnly cookie)
-- DB: PostgreSQL + Drizzle ORM — schema for all entities pushed; auth tables in use
+- State: React Context for auth + React Query for business data, all backed by API
+- API: Express 5 with bcryptjs + DB-backed sessions (Bearer token + httpOnly cookie); role-based authorization (admin/employee/client)
+- DB: PostgreSQL + Drizzle ORM — all entities live in Postgres (services, products, professionals, clients, appointments, cash, loyalty)
 - Build: esbuild (CJS bundle for API server)
 
 ## Where things live
@@ -36,7 +36,9 @@ A SaaS mobile app for barbershop management — clients book appointments, admin
 ## Architecture decisions
 
 - Auth: real multi-tenant via Postgres. `register-shop` creates shop + admin + 7-day trial; `register-client` creates client+user inside an existing shop slug; sessions stored in DB, token returned to client and used as `Authorization: Bearer`.
-- Business data (services, professionals, appointments, clients, cash, loyalty): still in AsyncStorage for now — Phase 2 will move them to API/Postgres. New shops registered via API will have empty data until Phase 2 lands.
+- Business data: full CRUD via API (`/api/services|products|professionals|clients|appointments|cash-entries|loyalty/*`). Tenant isolation enforced server-side on every query (filtered by `req.auth.barbershop.id`); cross-tenant FK refs blocked on appointment creation.
+- Authorization matrix: only admin can mutate services/products/professionals/loyalty-settings/cash; client can only read/modify own client row, own appointments (cancel only), own loyalty; employee can read most things and edit own schedule.
+- Race-safety: completing an appointment uses a conditional UPDATE (status WHERE prev-status) so concurrent PATCHes can't double-increment loyalty.
 - Two distinct role flows: `client` → `(client)` tabs, `admin` → `(admin)` tabs, routing done in `app/index.tsx`
 - Demo accounts seeded in AuthContext for easy testing without registration
 - Appointment booking is a 4-step modal flow (services → professional → date/time → confirm)
@@ -57,8 +59,9 @@ A SaaS mobile app for barbershop management — clients book appointments, admin
 
 - Always run `pnpm --filter @workspace/api-spec run codegen` after OpenAPI spec changes before using generated hooks
 - The `(tabs)` scaffold directory was removed and replaced with `(client)` and `(admin)` route groups
-- Demo login (now backed by Postgres, slug `primeiro_nucleo`): admin@barberpro.com / admin123, client joao@email.com / 123456
-- Employee management, premium upgrade, and `barbershopUsers` lookup are stubbed in AuthContext (returning empty / no-op) until Phase 2 wires real endpoints — the Services screen's "Equipe" tab will show no users.
+- Demo login (slug `primeiro_nucleo`): admin@barberpro.com / admin123, client joao@email.com / 123456, employee rafael@barberpro.com / func123. Re-seed demo data (idempotent, dev only) with `curl -X POST http://localhost/api/_dev/seed-demo`.
+- Premium upgrade and `barbershopUsers` lookup are still stubbed in AuthContext until Phase 3 (Stripe).
+- New shops registered via `/auth/register-shop` start with empty catalogs (no services/professionals); admin must add them through the UI.
 - Expo web preview may appear blank on first load — the native preview via Expo Go QR code is the source of truth
 
 ## Pointers

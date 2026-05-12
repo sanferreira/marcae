@@ -44,7 +44,7 @@ export default function AppointmentsScreen() {
   const botPad = Platform.OS === "web" ? 34 : insets.bottom;
 
   const myApts = appointments
-    .filter((a) => a.clientId === user?.id)
+    .filter((a) => a.clientId === (user?.clientId ?? user?.id))
     .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
 
   const today = new Date().toISOString().split("T")[0];

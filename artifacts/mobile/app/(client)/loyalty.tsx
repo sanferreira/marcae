@@ -23,7 +23,7 @@ export default function LoyaltyScreen() {
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const botPad = Platform.OS === "web" ? 34 : insets.bottom;
 
-  const loyalty = getClientLoyalty(user?.id ?? "");
+  const loyalty = getClientLoyalty(user?.clientId ?? user?.id ?? "");
 
   const TYPE_CONFIG = {
     earned: { icon: "plus-circle" as const, color: "#22C55E", label: "Ganhou" },

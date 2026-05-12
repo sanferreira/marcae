@@ -25,8 +25,9 @@ export default function ProfileScreen() {
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const botPad = Platform.OS === "web" ? 34 : insets.bottom;
 
-  const loyalty = getClientLoyalty(user?.id ?? "");
-  const myApts = appointments.filter((a) => a.clientId === user?.id);
+  const myClientId = user?.clientId ?? user?.id;
+  const loyalty = getClientLoyalty(myClientId ?? "");
+  const myApts = appointments.filter((a) => a.clientId === myClientId);
   const completedApts = myApts.filter((a) => a.status === "completed");
   const totalSpent = completedApts.reduce((s, a) => s + a.totalPrice, 0);
 

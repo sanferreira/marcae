@@ -111,24 +111,32 @@ export default function HomeScreen() {
     if (!user || !selectedProf) return;
     setLoading(true);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    const apt: Omit<Appointment, "barbershopId"> = {
-      id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
-      clientId: user.id,
-      clientName: user.name,
-      professionalId: selectedProfId,
-      professionalName: selectedProf.name,
-      services: selectedServices,
-      date: dateStr,
-      time: selectedTime,
-      totalPrice,
-      totalDuration,
-      status: "confirmed",
-      createdAt: new Date().toISOString(),
-    };
-    await addAppointment(apt);
-    setLoading(false);
-    setBookingOpen(false);
-    Alert.alert("Agendado!", `Seu horário com ${selectedProf.name} foi confirmado para ${selectedDate.toLocaleDateString("pt-BR")} às ${selectedTime}.`);
+    if (!user.clientId) {
+      setLoading(false);
+      Alert.alert("Erro", "Sua conta não está vinculada a um cliente. Faça login novamente.");
+      return;
+    }
+    try {
+      await addAppointment({
+        clientId: user.clientId,
+        clientName: user.name,
+        professionalId: selectedProfId,
+        professionalName: selectedProf.name,
+        services: selectedServices,
+        date: dateStr,
+        time: selectedTime,
+        totalPrice,
+        totalDuration,
+        status: "confirmed",
+        isFreeByLoyalty: false,
+      });
+      setBookingOpen(false);
+      Alert.alert("Agendado!", `Seu horário com ${selectedProf.name} foi confirmado para ${selectedDate.toLocaleDateString("pt-BR")} às ${selectedTime}.`);
+    } catch (e) {
+      Alert.alert("Não foi possível agendar", (e as Error).message ?? "Tente outro horário.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const STEPS: BookingStep[] = ["services", "professional", "datetime", "confirm"];
