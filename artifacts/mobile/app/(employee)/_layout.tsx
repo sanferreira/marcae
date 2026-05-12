@@ -94,7 +94,7 @@ function EmployeeExpiredGate() {
         <Feather name="alert-circle" size={36} color={colors.destructive} />
         <Text style={[empGate.title, { color: colors.foreground }]}>Acesso pausado</Text>
         <Text style={[empGate.msg, { color: colors.mutedForeground }]}>
-          A assinatura de {barbershop?.name ?? "sua barbearia"} expirou. Peça ao administrador para reativar o plano.
+          A assinatura de {barbershop?.name ?? "seu estabelecimento"} expirou. Peça ao administrador para reativar o plano.
         </Text>
         <TouchableOpacity style={[empGate.btn, { borderColor: colors.border }]} onPress={logout}>
           <Text style={[empGate.btnText, { color: colors.foreground }]}>Sair da conta</Text>

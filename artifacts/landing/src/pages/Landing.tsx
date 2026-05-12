@@ -8,7 +8,6 @@ import {
   LineChart,
   MessageCircle,
   Plus,
-  Scissors,
   Settings2,
   ShieldCheck,
   Smartphone,
@@ -40,7 +39,7 @@ const MARQUEE_ITEMS = [
 ];
 
 const STATS = [
-  { value: "+340", label: "barbearias usam todo dia" },
+  { value: "+340", label: "profissionais usam todo dia" },
   { value: "98%", label: "agendamentos sem ligação" },
   { value: "2,4x", label: "mais retenção de clientes" },
   { value: "7 dias", label: "grátis, sem cartão" },
@@ -55,7 +54,7 @@ const FEATURES = [
   {
     icon: Star,
     title: "Fidelidade que volta sempre",
-    body: "Pontos a cada corte, brindes automáticos. O cliente vê o progresso e marca o próximo.",
+    body: "Pontos a cada atendimento, brindes automáticos. O cliente vê o progresso e marca o próximo.",
   },
   {
     icon: DollarSign,
@@ -68,7 +67,7 @@ const FEATURES = [
     body: "Histórico, preferências, aniversário e quanto ele já gastou. Você lembra de tudo.",
   },
   {
-    icon: Scissors,
+    icon: Sparkles,
     title: "Catálogo de serviços vivo",
     body: "Crie combos, ative ou pause serviços, ajuste preços. Tudo aparece no app na hora.",
   },
@@ -87,7 +86,7 @@ const ROLES = [
       "Escolhe serviço, profissional e horário",
       "Recebe lembretes e confirma na hora",
       "Acompanha pontos de fidelidade",
-      "Vê o histórico de cada corte",
+      "Vê o histórico de cada atendimento",
     ],
     accent: "from-[#F1ECE3] to-[#FAF7F2]",
   },
@@ -98,7 +97,7 @@ const ROLES = [
       "Vê os horários do dia já organizados",
       "Marca atendimento como feito num toque",
       "Acompanha comissão em tempo real",
-      "Acessa histórico do cliente antes do corte",
+      "Acessa histórico do cliente antes do atendimento",
     ],
     accent: "from-[#0C0C0C] to-[#1A1A1A]",
     dark: true,
@@ -119,8 +118,8 @@ const ROLES = [
 const STEPS = [
   {
     n: "01",
-    title: "Crie sua barbearia",
-    body: "Cadastre nome, endereço e horário em 2 minutos. Sua barbearia ganha um perfil só seu.",
+    title: "Crie seu estabelecimento",
+    body: "Cadastre nome, endereço e horário em 2 minutos. Seu negócio ganha um perfil só seu.",
   },
   {
     n: "02",
@@ -130,7 +129,7 @@ const STEPS = [
   {
     n: "03",
     title: "Compartilhe o link",
-    body: "Mande o link da sua barbearia no Instagram, WhatsApp e Google. Os agendamentos começam a chegar.",
+    body: "Mande o link do seu estabelecimento no Instagram, WhatsApp e Google. Os agendamentos começam a chegar.",
   },
 ];
 
@@ -141,7 +140,7 @@ const FAQ = [
   },
   {
     q: "Como meus clientes acessam?",
-    a: "Você compartilha um link único da sua barbearia. O cliente abre, faz cadastro em segundos e já consegue agendar. Não precisa baixar nada complicado.",
+    a: "Você compartilha um link único do seu estabelecimento. O cliente abre, faz cadastro em segundos e já consegue agendar. Não precisa baixar nada complicado.",
   },
   {
     q: "Funciona em quantos celulares?",
@@ -258,7 +257,7 @@ function Hero() {
             7 dias grátis · sem cartão
           </div>
           <h1 className="font-display font-bold text-[44px] md:text-[68px] leading-[0.95] tracking-tight text-[var(--color-ink)]">
-            Sua barbearia,
+            Sua agenda,
             <br />
             <span className="relative inline-block">
               no automático.
@@ -268,11 +267,11 @@ function Hero() {
             </span>
           </h1>
           <p className="mt-7 text-[17px] md:text-[19px] text-[var(--color-muted)] leading-relaxed max-w-[520px]">
-            Agenda, clientes, financeiro e fidelidade no mesmo app. O BarberPro cuida da bagunça pra você cuidar do que importa: cortar cabelo.
+            Agenda, clientes, financeiro e fidelidade no mesmo app. Pra barbearia, salão, estética, cílios, sobrancelha, unha, tatuagem, massagem — qualquer profissional que marca hora. O Marcaê cuida da bagunça pra você cuidar do cliente.
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <a href="/register-shop" className="btn-primary">
-              Cadastrar minha barbearia · 7 dias grátis
+              Cadastrar meu estabelecimento · 7 dias grátis
               <ArrowRight className="w-4 h-4" />
             </a>
             <a href="#como-funciona" className="btn-secondary">
@@ -291,7 +290,7 @@ function Hero() {
                   <Star key={i} className="w-3.5 h-3.5 text-[var(--color-gold)]" fill="currentColor" />
                 ))}
               </div>
-              <div className="text-[12px] text-[var(--color-muted)]">+340 barbearias usam o BarberPro</div>
+              <div className="text-[12px] text-[var(--color-muted)]">+340 profissionais usam o Marcaê</div>
             </div>
           </div>
         </div>
@@ -336,7 +335,7 @@ function Features() {
             Pare de juntar planilha, caderno e WhatsApp.
           </h2>
           <p className="mt-5 text-[17px] text-[var(--color-muted)] leading-relaxed">
-            Tudo que sua barbearia precisa, no lugar que faz sentido. Sem plugin, sem integração esquisita.
+            Tudo que o seu estabelecimento precisa, no lugar que faz sentido. Sem plugin, sem integração esquisita.
           </p>
         </div>
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -408,7 +407,7 @@ function HowItWorks() {
         <div className="max-w-2xl mb-12 md:mb-16">
           <span className="section-eyebrow">Como funciona</span>
           <h2 className="font-display font-bold text-[36px] md:text-[52px] leading-[1] text-[var(--color-ink)]">
-            Em 5 minutos sua barbearia está no ar.
+            Em 5 minutos seu estabelecimento está no ar.
           </h2>
         </div>
         <div className="grid md:grid-cols-3 gap-4">
@@ -471,7 +470,7 @@ function Pricing() {
 
             <div className="text-center mb-8">
               <div className="font-display font-semibold text-[15px] text-[var(--color-gold)] uppercase tracking-wider mb-3">
-                BarberPro Completo
+                Marcaê Completo
               </div>
               <div className="flex items-baseline justify-center gap-1">
                 <span className="text-[28px] font-medium text-white/60">R$</span>
@@ -578,16 +577,16 @@ function FinalCta() {
           <div className="relative">
             <Settings2 className="w-8 h-8 text-[var(--color-gold)] mx-auto mb-6" />
             <h2 className="font-display font-bold text-[36px] md:text-[56px] leading-[1] tracking-tight">
-              Sua barbearia merece
+              Seu negócio merece
               <br />
               <span className="text-[var(--color-gold)]">um sistema de verdade.</span>
             </h2>
             <p className="mt-6 text-[17px] text-white/70 max-w-xl mx-auto">
-              Comece agora, sem cartão, sem instalar nada. Em 5 minutos sua barbearia está pronta para receber agendamentos.
+              Comece agora, sem cartão, sem instalar nada. Em 5 minutos seu estabelecimento está pronto para receber agendamentos.
             </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
               <a href="/register-shop" className="btn-primary">
-                Cadastrar minha barbearia
+                Cadastrar meu estabelecimento
                 <ArrowRight className="w-4 h-4" />
               </a>
               <a href="#faq" className="text-[14px] font-semibold text-white/80 hover:text-white px-4 py-3">
@@ -608,7 +607,7 @@ function Footer() {
         <div>
           <Logo />
           <p className="mt-4 text-[13.5px] text-[var(--color-muted)] max-w-xs leading-relaxed">
-            O sistema completo da sua barbearia: agenda, clientes, financeiro e fidelidade num app só.
+            O sistema completo pra quem marca hora: agenda, clientes, financeiro e fidelidade num app só.
           </p>
         </div>
         <FooterCol
@@ -640,7 +639,7 @@ function Footer() {
       </div>
       <div className="border-t border-[var(--color-line-soft)]">
         <div className="max-w-6xl mx-auto px-5 md:px-8 py-5 flex flex-col md:flex-row items-center justify-between gap-3 text-[12px] text-[var(--color-muted)]">
-          <div>© {new Date().getFullYear()} BarberPro. Todos os direitos reservados.</div>
+          <div>© {new Date().getFullYear()} Marcaê. Todos os direitos reservados.</div>
           <div className="flex items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-[#22c55e] pulse-dot" />
             Todos os sistemas operacionais

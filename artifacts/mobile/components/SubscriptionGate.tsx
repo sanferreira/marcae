@@ -35,7 +35,7 @@ export function SubscriptionGate() {
       }
       Alert.alert(
         "Assinatura vencida",
-        "Esta barbearia está com a assinatura mensal vencida. Avise o administrador para reativá-la — você pode continuar consultando informações enquanto isso.",
+        "Este estabelecimento está com a assinatura mensal vencida. Avise o administrador para reativá-la — você pode continuar consultando informações enquanto isso.",
       );
     });
     return off;

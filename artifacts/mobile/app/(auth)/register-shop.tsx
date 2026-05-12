@@ -88,7 +88,7 @@ export default function RegisterShopScreen() {
           <View style={[styles.headerIcon, { backgroundColor: colors.gold }]}>
             <Feather name="briefcase" size={22} color="#0C0C0C" />
           </View>
-          <Text style={[styles.title, { color: colors.foreground }]}>Cadastre sua barbearia</Text>
+          <Text style={[styles.title, { color: colors.foreground }]}>Cadastre seu estabelecimento</Text>
           <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
             Comece com 7 dias grátis. Sem cartão de crédito.
           </Text>
@@ -113,11 +113,11 @@ export default function RegisterShopScreen() {
         </View>
 
         {/* Step 1: Shop */}
-        <Text style={[styles.section, { color: colors.foreground }]}>Sobre a barbearia</Text>
+        <Text style={[styles.section, { color: colors.foreground }]}>Sobre o estabelecimento</Text>
         <View style={styles.form}>
-          <Field label="Nome da barbearia *" icon="scissors" value={name} onChange={setName} colors={colors} cap="words" placeholder="Ex: Primeiro Núcleo" />
+          <Field label="Nome do estabelecimento *" icon="briefcase" value={name} onChange={setName} colors={colors} cap="words" placeholder="Ex: Studio Bella" />
           <View>
-            <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>ID da barbearia *</Text>
+            <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>ID do estabelecimento *</Text>
             <View style={[styles.inputGroup, { borderColor: colors.border, backgroundColor: colors.card }]}>
               <Feather name="hash" size={16} color={colors.mutedForeground} />
               <TextInput

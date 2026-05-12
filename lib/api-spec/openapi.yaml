@@ -3,7 +3,7 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: BarberPro API
+  description: Marcaê API
 servers:
   - url: /api
     description: Base API path
@@ -11,6 +11,7 @@ tags:
   - name: health
   - name: auth
   - name: barbershops
+  - name: settings
 paths:
   /healthz:
     get:
@@ -131,6 +132,38 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/ErrorResponse" }
 
+  /barbershop:
+    patch:
+      operationId: updateBarbershopSettings
+      tags: [settings]
+      summary: Update the authenticated admin's establishment settings (name, brand colors, contact)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateBarbershopInput" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Barbershop" }
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "403":
+          description: Admin only
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
   /barbershops/{slug}/exists:
     get:
       operationId: checkBarbershopSlug
@@ -206,14 +239,33 @@ components:
           enum: [trial, premium, expired]
         trialEndsAt: { type: string, format: date-time }
         subscriptionRenewsAt: { type: string, format: date-time, nullable: true }
+        brandPrimary: { type: string, description: "Primary brand color (hex #RRGGBB)" }
+        brandAccent: { type: string, description: "Accent / dark brand color (hex #RRGGBB)" }
         createdAt: { type: string, format: date-time }
-      required: [id, slug, name, ownerName, ownerEmail, plan, trialEndsAt, createdAt]
+      required: [id, slug, name, ownerName, ownerEmail, plan, trialEndsAt, brandPrimary, brandAccent, createdAt]
+
+    UpdateBarbershopInput:
+      type: object
+      properties:
+        name: { type: string, minLength: 1 }
+        phone: { type: string, nullable: true }
+        address: { type: string, nullable: true }
+        brandPrimary:
+          type: string
+          pattern: "^#[0-9A-Fa-f]{6}$"
+          description: "Primary brand color (hex #RRGGBB)"
+        brandAccent:
+          type: string
+          pattern: "^#[0-9A-Fa-f]{6}$"
+          description: "Accent / dark brand color (hex #RRGGBB)"
 
     BarbershopLookup:
       type: object
       properties:
         exists: { type: boolean }
         name: { type: string, nullable: true }
+        brandPrimary: { type: string, nullable: true }
+        brandAccent: { type: string, nullable: true }
       required: [exists]
 
     AuthUser:

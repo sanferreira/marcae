@@ -37,7 +37,7 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     if (!slug || !email || !password) {
-      Alert.alert("Atenção", "Preencha o ID da barbearia, email e senha.");
+      Alert.alert("Atenção", "Preencha o ID do estabelecimento, email e senha.");
       return;
     }
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -74,15 +74,15 @@ export default function LoginScreen() {
           <View style={[styles.logoIcon, { backgroundColor: colors.gold }]}>
             <Feather name="scissors" size={28} color="#0C0C0C" />
           </View>
-          <Text style={[styles.logoText, { color: colors.foreground }]}>BarberPro</Text>
+          <Text style={[styles.logoText, { color: colors.foreground }]}>Marcaê</Text>
           <Text style={[styles.logoSub, { color: colors.mutedForeground }]}>
-            SaaS de gestão para barbearias
+            Agenda e gestão para profissionais que marcam hora
           </Text>
         </View>
 
         <View style={styles.form}>
           <View>
-            <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>ID da barbearia</Text>
+            <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>ID do estabelecimento</Text>
             <View style={[styles.inputGroup, { borderColor: colors.border, backgroundColor: colors.card }]}>
               <Feather name="hash" size={16} color={colors.mutedForeground} />
               <TextInput
@@ -170,7 +170,7 @@ export default function LoginScreen() {
           <TouchableOpacity onPress={() => router.push("/(auth)/register-shop")} style={[styles.bigLink, { borderColor: colors.gold, backgroundColor: colors.gold + "12" }]}>
             <Feather name="briefcase" size={16} color={colors.gold} />
             <View style={{ flex: 1 }}>
-              <Text style={[styles.bigLinkTitle, { color: colors.foreground }]}>Cadastrar minha barbearia</Text>
+              <Text style={[styles.bigLinkTitle, { color: colors.foreground }]}>Cadastrar meu estabelecimento</Text>
               <Text style={[styles.bigLinkSub, { color: colors.mutedForeground }]}>7 dias grátis com todos recursos</Text>
             </View>
             <Feather name="arrow-right" size={16} color={colors.gold} />

@@ -46,6 +46,8 @@ export function serializeBarbershop(b: Barbershop) {
     plan: b.plan as "trial" | "premium" | "expired",
     trialEndsAt: iso(b.trialEndsAt),
     subscriptionRenewsAt: isoOrNull(b.subscriptionRenewsAt),
+    brandPrimary: b.brandPrimary,
+    brandAccent: b.brandAccent,
     createdAt: iso(b.createdAt),
   };
 }

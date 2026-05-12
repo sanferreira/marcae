@@ -17,6 +17,8 @@ export interface Barbershop {
   trialEndsAt: string;
   plan: "trial" | "premium" | "expired";
   subscriptionRenewsAt?: string | null;
+  brandPrimary: string;
+  brandAccent: string;
 }
 
 export interface AuthUser {
@@ -71,6 +73,7 @@ interface AuthContextType {
   openBillingPortal: () => Promise<{ ok: boolean; error?: string }>;
   refreshSession: () => Promise<void>;
   cancelSubscription: () => Promise<void>;
+  updateBarbershop: (patch: { name?: string; phone?: string | null; address?: string | null; brandPrimary?: string; brandAccent?: string }) => Promise<{ ok: boolean; error?: string }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -164,6 +167,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const cancelSubscription = async () => { /* handled via Stripe portal */ };
 
+  const updateBarbershop: AuthContextType["updateBarbershop"] = useCallback(async (patch) => {
+    const r = await apiFetch<Barbershop>("/barbershop", { method: "PATCH", body: patch });
+    if (!r.ok) return { ok: false, error: r.error };
+    setSession((s) => (s ? { ...s, barbershop: { ...s.barbershop, ...r.data } } : s));
+    return { ok: true };
+  }, []);
+
   return (
     <AuthContext.Provider value={{
       user: session?.user ?? null,
@@ -175,6 +185,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       registerBarbershop, registerClient,
       upsertEmployeeUser, removeEmployeeUser,
       upgradeToPremium, openBillingPortal, refreshSession, cancelSubscription,
+      updateBarbershop,
     }}>
       {children}
     </AuthContext.Provider>

@@ -9,8 +9,8 @@ const router: IRouter = Router();
 router.use(requireAuth);
 
 const PRICE_BRL_CENTS = 5900;
-const PRODUCT_NAME = "BarberPro Premium";
-const PRODUCT_DESC = "Plano mensal completo do BarberPro — agenda, financeiro, fidelidade e notificações.";
+const PRODUCT_NAME = "Marcaê Premium";
+const PRODUCT_DESC = "Plano mensal completo do Marcaê — agenda, financeiro, fidelidade e notificações.";
 
 let cachedPriceId: string | null = null;
 async function ensurePrice(): Promise<string> {

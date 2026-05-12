@@ -75,13 +75,13 @@ export default function RegisterScreen() {
           </View>
           <Text style={[styles.title, { color: colors.foreground }]}>Criar conta de cliente</Text>
           <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
-            Informe o ID da barbearia onde deseja se cadastrar para começar a marcar horários.
+            Informe o ID do estabelecimento onde deseja se cadastrar para começar a marcar horários.
           </Text>
         </View>
 
         <View style={styles.form}>
           <View>
-            <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>ID da barbearia</Text>
+            <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>ID do estabelecimento</Text>
             <View style={[styles.inputGroup, { borderColor: colors.border, backgroundColor: colors.card }]}>
               <Feather name="hash" size={16} color={colors.mutedForeground} />
               <TextInput

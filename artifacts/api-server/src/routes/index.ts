@@ -9,6 +9,7 @@ import appointmentsRouter from "./appointments";
 import cashEntriesRouter from "./cashEntries";
 import employeesRouter from "./employees";
 import billingRouter from "./billing";
+import settingsRouter from "./settings";
 import devRouter from "./dev";
 import { requirePremiumForMutations } from "../lib/billing";
 
@@ -18,6 +19,7 @@ router.use(healthRouter);
 router.use(devRouter);
 router.use(authRouter);
 router.use(billingRouter);
+router.use(settingsRouter);
 // Block mutating endpoints when the shop's subscription is expired.
 // Reads still work so users can review their data.
 router.use(requirePremiumForMutations);

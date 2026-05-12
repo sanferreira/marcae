@@ -1,6 +1,8 @@
-# BarberPro
+# Marcaê
 
-A SaaS mobile app for barbershop management — clients book appointments, admins manage staff, services, finances, and loyalty programs. Monetization: R$59/mo via Stripe, with a 7-day free trial that converts to a hard block on the admin until the subscription is active.
+A SaaS mobile app for **any appointment-based independent professional** — barbershops, salons, lashes, brows, nails, aesthetics, tattoo, massage, etc. Clients book appointments, admins manage staff, services, finances, and loyalty programs. Monetization: R$59/mo via Stripe, with a 7-day free trial that converts to a hard block on the admin until the subscription is active.
+
+The mobile app, landing, and Stripe product all use the **Marcaê** brand. The product copy uses "estabelecimento" (establishment) instead of "barbearia" so it speaks to every niche. The internal DB schema (`barbershops` table, `barbershopId` columns, etc.) keeps the legacy name to avoid a rename migration — only user-facing copy changed.
 
 ## Run & Operate
 
@@ -53,7 +55,14 @@ A SaaS mobile app for barbershop management — clients book appointments, admin
 ## Product
 
 - **Client side**: Browse services, book with any professional (date/time picker, conflict detection), view upcoming/past appointments, track loyalty progress, manage profile
-- **Admin side**: Dashboard with KPI stats (revenue, appointments, top services), daily agenda with complete/cancel actions, client CRM with loyalty tracking, financial overview (income/expense/profit by period and payment method), service catalog management (add/edit/toggle active)
+- **Admin side**: Dashboard with KPI stats (revenue, appointments, top services), daily agenda with complete/cancel actions, client CRM with loyalty tracking, financial overview (income/expense/profit by period and payment method), service catalog management (add/edit/toggle active), brand customization (estabelecimento name + 2 color pickers)
+
+## Brand customization
+
+- DB: `barbershops.brand_primary` + `brand_accent` (text, NOT NULL, default `#C9A96E` / `#0C0C0C`).
+- API: `PATCH /api/barbershop` (admin-only, hex regex validated) returns the updated `Barbershop`. `serializeBarbershop` and the public `/barbershops/:slug/exists` lookup both expose `brandPrimary`/`brandAccent`.
+- Mobile theming: `contexts/BrandColorsContext.tsx` reads `barbershop.brandPrimary`/`brandAccent` from `useAuth` and exposes a `BrandColors` value. `hooks/useColors.ts` overlays it onto the `gold` / `primary` / `accent` / `tint` slots so every screen recolors without prop-drilling. `BrandColorsProvider` MUST sit between `AuthProvider` and `DataProvider` in `app/_layout.tsx`. Auth screens render with the default Marcaê palette because no auth → no overlay.
+- Settings UI: `app/admin-settings.tsx` (root-level Stack screen, not a tab) — name field + 2 swatch grids + hex input + live preview card. Reachable from the admin dashboard avatar menu.
 
 ## User preferences
 
@@ -65,7 +74,10 @@ A SaaS mobile app for barbershop management — clients book appointments, admin
 
 - Always run `pnpm --filter @workspace/api-spec run codegen` after OpenAPI spec changes before using generated hooks
 - The `(tabs)` scaffold directory was removed and replaced with `(client)` and `(admin)` route groups
-- Demo login (slug `primeiro_nucleo`): admin@barberpro.com / admin123, client joao@email.com / 123456, employee rafael@barberpro.com / func123. Re-seed demo data (idempotent, dev only) with `curl -X POST http://localhost/api/_dev/seed-demo`.
+- Demo login (slug `primeiro_nucleo`): admin@barberpro.com / admin123, client joao@email.com / 123456, employee rafael@barberpro.com / func123. Re-seed demo data (idempotent, dev only) with `curl -X POST http://localhost/api/_dev/seed-demo`. (Demo emails kept on the `barberpro.com` domain on purpose — they are seeded constants used in onboarding.)
+- Brand color zod export from codegen is `UpdateBarbershopSettingsBody` (taken from the OpenAPI `operationId`, not the schema name). The TS type is still `UpdateBarbershopInput`.
+- Force trial-expired state for testing: `UPDATE barbershops SET trial_ends_at=NOW()-interval '1 day' WHERE slug='primeiro_nucleo'`.
+- Existing rows already get the brand defaults via the column DEFAULT, so the rebrand migration was non-breaking. If you ever ALTER away the default, backfill first.
 - `barbershopUsers` lookup is still stubbed in AuthContext (employee management UI uses backend endpoints directly).
 - `stripe-replit-sync` ships SQL migration files under its `dist/migrations/` folder, so it MUST be marked as `external` in `artifacts/api-server/build.mjs`. `pg` is also external because of that. If you re-bundle either, `findOrCreateManagedWebhook` will fail at runtime with `relation "stripe.accounts" does not exist`.
 - The Stripe API version pin (`2025-11-17.clover`) is dictated by the SDK type definitions — bumping `stripe` requires updating it.

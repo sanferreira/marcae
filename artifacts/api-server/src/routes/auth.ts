@@ -40,12 +40,12 @@ router.post("/auth/register-shop", async (req: Request, res: Response): Promise<
   }
   const slug = slugify(parsed.data.slug);
   if (!slug) {
-    res.status(400).json({ error: "ID da barbearia inválido." });
+    res.status(400).json({ error: "ID do estabelecimento inválido." });
     return;
   }
   const existing = await db.select().from(barbershopsTable).where(eq(barbershopsTable.slug, slug)).limit(1);
   if (existing.length > 0) {
-    res.status(409).json({ error: "Esse ID de barbearia já está em uso." });
+    res.status(409).json({ error: "Esse ID de estabelecimento já está em uso." });
     return;
   }
   const ownerEmail = parsed.data.ownerEmail.trim().toLowerCase();
@@ -83,7 +83,7 @@ router.post("/auth/register-client", async (req: Request, res: Response): Promis
   const slug = slugify(parsed.data.slug);
   const [shop] = await db.select().from(barbershopsTable).where(eq(barbershopsTable.slug, slug)).limit(1);
   if (!shop) {
-    res.status(404).json({ error: "Barbearia não encontrada." });
+    res.status(404).json({ error: "Estabelecimento não encontrado." });
     return;
   }
   const email = parsed.data.email.trim().toLowerCase();
@@ -91,7 +91,7 @@ router.post("/auth/register-client", async (req: Request, res: Response): Promis
     .where(and(eq(usersTable.barbershopId, shop.id), eq(usersTable.email, email)))
     .limit(1);
   if (dup.length > 0) {
-    res.status(409).json({ error: "Já existe usuário com esse email nessa barbearia." });
+    res.status(409).json({ error: "Já existe usuário com esse email neste estabelecimento." });
     return;
   }
   const passwordHash = await hashPassword(parsed.data.password);
@@ -126,7 +126,7 @@ router.post("/auth/login", async (req: Request, res: Response): Promise<void> =>
   const email = parsed.data.email.trim().toLowerCase();
   const [shop] = await db.select().from(barbershopsTable).where(eq(barbershopsTable.slug, slug)).limit(1);
   if (!shop) {
-    res.status(401).json({ error: "Barbearia não encontrada com esse ID." });
+    res.status(401).json({ error: "Estabelecimento não encontrado com esse ID." });
     return;
   }
   const [user] = await db.select().from(usersTable)
@@ -164,7 +164,12 @@ router.get("/barbershops/:slug/exists", async (req: Request, res: Response): Pro
   const raw = Array.isArray(req.params.slug) ? req.params.slug[0] : req.params.slug;
   const slug = slugify(raw);
   const [shop] = await db.select().from(barbershopsTable).where(eq(barbershopsTable.slug, slug)).limit(1);
-  res.json({ exists: !!shop, name: shop?.name ?? null });
+  res.json({
+    exists: !!shop,
+    name: shop?.name ?? null,
+    brandPrimary: shop?.brandPrimary ?? null,
+    brandAccent: shop?.brandAccent ?? null,
+  });
 });
 
 router.post("/auth/push-token", requireAuth, async (req: Request, res: Response): Promise<void> => {

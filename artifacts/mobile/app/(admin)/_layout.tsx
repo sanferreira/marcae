@@ -145,7 +145,7 @@ function ExpiredPlanGate({ canUpgrade }: { canUpgrade: boolean }) {
         <Feather name="alert-circle" size={36} color={colors.destructive} />
         <Text style={[gateStyles.title, { color: colors.foreground }]}>Plano expirado</Text>
         <Text style={[gateStyles.msg, { color: colors.mutedForeground }]}>
-          O acesso de {barbershop?.name ?? "sua barbearia"} foi pausado.{"\n"}
+          O acesso de {barbershop?.name ?? "seu estabelecimento"} foi pausado.{"\n"}
           {canUpgrade ? "Reative a assinatura por R$59/mês para voltar a operar." : "Peça ao administrador para reativar a assinatura."}
         </Text>
         {canUpgrade && (

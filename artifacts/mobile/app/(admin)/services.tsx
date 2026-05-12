@@ -461,7 +461,7 @@ export default function ManagementScreen() {
               </TouchableOpacity>
             </View>
             <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>Benefício ao completar</Text>
-            <TextInput style={[styles.fieldInput, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.background }]} value={loyaltyForm.benefitDescription} onChangeText={(v) => setLoyaltyForm((f) => ({ ...f, benefitDescription: v }))} placeholder="Ex: Corte de cabelo gratuito" placeholderTextColor={colors.mutedForeground} />
+            <TextInput style={[styles.fieldInput, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.background }]} value={loyaltyForm.benefitDescription} onChangeText={(v) => setLoyaltyForm((f) => ({ ...f, benefitDescription: v }))} placeholder="Ex: Atendimento gratuito" placeholderTextColor={colors.mutedForeground} />
             <TouchableOpacity style={[styles.saveBtn, { backgroundColor: colors.gold }]} onPress={saveLoyalty} disabled={loyaltySaving}>
               <Feather name="check" size={16} color="#0C0C0C" />
               <Text style={styles.saveBtnText}>{loyaltySaving ? "Salvando..." : "Salvar configurações"}</Text>
@@ -528,7 +528,7 @@ export default function ManagementScreen() {
 
           {/* Pricing card */}
           <View style={[styles.priceCard, { backgroundColor: colors.gold + "12", borderColor: colors.gold + "55" }]}>
-            <Text style={[styles.priceTitle, { color: colors.foreground }]}>Premium BarberPro</Text>
+            <Text style={[styles.priceTitle, { color: colors.foreground }]}>Premium Marcaê</Text>
             <View style={styles.priceRow}>
               <Text style={[styles.priceValue, { color: colors.gold }]}>R$59</Text>
               <Text style={[styles.priceUnit, { color: colors.mutedForeground }]}>/mês</Text>
@@ -562,7 +562,7 @@ export default function ManagementScreen() {
 
           {/* Stats */}
           <View style={[styles.previewCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Text style={[styles.previewTitle, { color: colors.foreground }]}>Sua barbearia</Text>
+            <Text style={[styles.previewTitle, { color: colors.foreground }]}>Seu estabelecimento</Text>
             <View style={styles.planStatsRow}>
               <View style={styles.planStatItem}>
                 <Text style={[styles.planStatVal, { color: colors.gold }]}>{barbershopUsers.filter((u) => u.role === "client").length}</Text>

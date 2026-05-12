@@ -57,18 +57,18 @@ router.post("/appointments", async (req: Request, res: Response): Promise<void> 
   // Tenant validation: client + professional + every service must belong to this shop
   const [clientRow] = await db.select().from(clientsTable)
     .where(and(eq(clientsTable.id, parsed.data.clientId), eq(clientsTable.barbershopId, shop))).limit(1);
-  if (!clientRow) { res.status(400).json({ error: "Cliente inválido para esta barbearia." }); return; }
+  if (!clientRow) { res.status(400).json({ error: "Cliente inválido para este estabelecimento." }); return; }
 
   const [profRow] = await db.select().from(professionalsTable)
     .where(and(eq(professionalsTable.id, parsed.data.professionalId), eq(professionalsTable.barbershopId, shop))).limit(1);
-  if (!profRow) { res.status(400).json({ error: "Profissional inválido para esta barbearia." }); return; }
+  if (!profRow) { res.status(400).json({ error: "Profissional inválido para este estabelecimento." }); return; }
 
   const svcIds = parsed.data.services.map((s: { id: string }) => s.id);
   if (svcIds.length === 0) { res.status(400).json({ error: "Selecione ao menos um serviço." }); return; }
   const ownedServices = await db.select().from(servicesTable)
     .where(and(eq(servicesTable.barbershopId, shop), inArray(servicesTable.id, svcIds)));
   if (ownedServices.length !== svcIds.length) {
-    res.status(400).json({ error: "Serviço inválido para esta barbearia." });
+    res.status(400).json({ error: "Serviço inválido para este estabelecimento." });
     return;
   }
 

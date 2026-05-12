@@ -124,9 +124,9 @@ function ShopPausedGate() {
     <View style={[gate.container, { backgroundColor: colors.background }]}>
       <View style={[gate.card, { backgroundColor: colors.card, borderColor: colors.destructive + "55" }]}>
         <Feather name="alert-circle" size={36} color={colors.destructive} />
-        <Text style={[gate.title, { color: colors.foreground }]}>Barbearia indisponível</Text>
+        <Text style={[gate.title, { color: colors.foreground }]}>Estabelecimento indisponível</Text>
         <Text style={[gate.msg, { color: colors.mutedForeground }]}>
-          {barbershop?.name ?? "Esta barbearia"} está temporariamente fora do ar. Tente novamente mais tarde.
+          {barbershop?.name ?? "Este estabelecimento"} está temporariamente fora do ar. Tente novamente mais tarde.
         </Text>
         <TouchableOpacity style={[gate.btn, { borderColor: colors.border }]} onPress={logout}>
           <Text style={[gate.btnText, { color: colors.foreground }]}>Sair da conta</Text>

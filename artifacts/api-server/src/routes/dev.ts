@@ -130,12 +130,12 @@ router.post("/_dev/seed-demo", async (_req: Request, res: Response): Promise<voi
   await db.insert(cashEntriesTable).values([
     { barbershopId: shop.id, description: "Corte + Barba - Marcos", amount: "80", type: "income", category: "Serviço", paymentMethod: "PIX", date: dayOffset(0), professionalName: "Rafael Mendes" },
     { barbershopId: shop.id, description: "Corte - André", amount: "45", type: "income", category: "Serviço", paymentMethod: "Dinheiro", date: dayOffset(0), professionalName: "Diego Santos" },
-    { barbershopId: shop.id, description: "Produtos de cabelo", amount: "180", type: "expense", category: "Produto", paymentMethod: "Cartão de Débito", date: dayOffset(0) },
+    { barbershopId: shop.id, description: "Produtos de uso interno", amount: "180", type: "expense", category: "Produto", paymentMethod: "Cartão de Débito", date: dayOffset(0) },
   ]);
 
   // Loyalty settings
   await db.insert(loyaltySettingsTable).values({
-    barbershopId: shop.id, requiredPoints: 10, benefitDescription: "Corte de cabelo gratuito",
+    barbershopId: shop.id, requiredPoints: 10, benefitDescription: "Atendimento gratuito",
   }).onConflictDoNothing();
 
   // Loyalty movements (one per existing client)

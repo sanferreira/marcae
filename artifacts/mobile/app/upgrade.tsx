@@ -15,7 +15,7 @@ export default function UpgradeScreen() {
     ? "Seu período gratuito acabou"
     : planStatus.isPremium
       ? "Sua assinatura está ativa"
-      : "Continue aproveitando o BarberPro";
+      : "Continue aproveitando o Marcaê";
   const subtitle = expired
     ? "Para voltar a usar o painel, ative a assinatura mensal."
     : planStatus.isPremium
@@ -41,7 +41,7 @@ export default function UpgradeScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
       <ScrollView contentContainerStyle={styles.container}>
         <View style={[styles.badge, { backgroundColor: colors.gold + "22", borderColor: colors.gold }]}>
-          <Text style={[styles.badgeText, { color: colors.gold }]}>BARBERPRO PREMIUM</Text>
+          <Text style={[styles.badgeText, { color: colors.gold }]}>MARCAÊ PREMIUM</Text>
         </View>
 
         <Text style={[styles.title, { color: colors.foreground }]}>{title}</Text>

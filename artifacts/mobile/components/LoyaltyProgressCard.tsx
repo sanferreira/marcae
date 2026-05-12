@@ -67,7 +67,7 @@ export function LoyaltyProgressCard({ loyalty }: Props) {
       <Text style={[styles.description, { color: colors.mutedForeground }]}>
         {loyalty.currentPoints === loyalty.requiredPoints
           ? "Parabéns! Você ganhou um benefício gratuito!"
-          : `Você possui ${loyalty.currentPoints} de ${loyalty.requiredPoints} cortes. Faltam ${remaining} para ganhar um corte grátis.`}
+          : `Você possui ${loyalty.currentPoints} de ${loyalty.requiredPoints} pontos. Faltam ${remaining} para ganhar seu prêmio.`}
       </Text>
     </View>
   );

@@ -125,6 +125,7 @@ export default function DashboardScreen() {
             onPress={() =>
               Alert.alert("Menu", "O que deseja fazer?", [
                 { text: "Cancelar", style: "cancel" },
+                { text: "Configurações", onPress: () => router.push("/admin-settings" as never) },
                 { text: "Sair da conta", style: "destructive", onPress: logout },
               ])
             }

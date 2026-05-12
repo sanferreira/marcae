@@ -14,7 +14,7 @@ export function requirePremium(req: Request, res: Response, next: NextFunction):
   const status = computePlanStatus(req.auth.barbershop);
   if (!status.isActive) {
     res.status(402).json({
-      error: "Esta barbearia está com a assinatura vencida. O administrador precisa renovar para continuar.",
+      error: "Este estabelecimento está com a assinatura vencida. O administrador precisa renovar para continuar.",
       code: "subscription_required",
       planStatus: status,
     });

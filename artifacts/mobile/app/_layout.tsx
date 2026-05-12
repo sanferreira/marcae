@@ -17,6 +17,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { SubscriptionGate } from "@/components/SubscriptionGate";
 import { TrialBanner } from "@/components/TrialBanner";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { BrandColorsProvider } from "@/contexts/BrandColorsContext";
 import { DataProvider } from "@/contexts/DataContext";
 
 SplashScreen.preventAutoHideAsync();
@@ -35,6 +36,7 @@ function RootLayoutNav() {
         <Stack.Screen name="(employee)" />
         <Stack.Screen name="(admin)" />
         <Stack.Screen name="upgrade" />
+        <Stack.Screen name="admin-settings" />
         <Stack.Screen name="+not-found" />
       </Stack>
     </>
@@ -64,9 +66,11 @@ export default function RootLayout() {
           <GestureHandlerRootView style={{ flex: 1 }}>
             <KeyboardProvider>
               <AuthProvider>
-                <DataProvider>
-                  <RootLayoutNav />
-                </DataProvider>
+                <BrandColorsProvider>
+                  <DataProvider>
+                    <RootLayoutNav />
+                  </DataProvider>
+                </BrandColorsProvider>
               </AuthProvider>
             </KeyboardProvider>
           </GestureHandlerRootView>
