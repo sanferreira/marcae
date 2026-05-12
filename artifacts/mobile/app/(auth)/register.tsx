@@ -16,12 +16,14 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAuth } from "@/contexts/AuthContext";
+import { useData } from "@/contexts/DataContext";
 import { useColors } from "@/hooks/useColors";
 
 export default function RegisterScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { registerClient } = useAuth();
+  const { addClient } = useData();
 
   const [slug, setSlug] = useState("");
   const [name, setName] = useState("");
@@ -43,6 +45,15 @@ export default function RegisterScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setLoading(true);
     const res = await registerClient({ slug, name, email, phone, password });
+    if (res.ok && res.barbershopId) {
+      // Mirror the new user as a CRM client so the admin sees them in the clients list.
+      await addClient({
+        id: "c-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+        barbershopId: res.barbershopId,
+        name: name.trim(), email: email.trim().toLowerCase(), phone,
+        totalSpent: 0, appointmentsCount: 0, loyaltyPoints: 0,
+      });
+    }
     setLoading(false);
     if (!res.ok) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);

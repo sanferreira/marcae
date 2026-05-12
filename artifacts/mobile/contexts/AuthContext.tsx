@@ -54,7 +54,7 @@ interface AuthContextType {
   }) => Promise<{ ok: boolean; error?: string }>;
   registerClient: (data: {
     slug: string; name: string; email: string; phone: string; password: string;
-  }) => Promise<{ ok: boolean; error?: string }>;
+  }) => Promise<{ ok: boolean; error?: string; barbershopId?: string; userId?: string }>;
   upsertEmployeeUser: (data: {
     professionalId: string; name: string; email: string; password: string; phone?: string;
   }) => Promise<{ ok: boolean; error?: string }>;
@@ -119,6 +119,10 @@ const slugify = (s: string) =>
 function computePlanStatus(b: Barbershop | null): PlanStatus {
   if (!b) return { plan: "trial", trialDaysLeft: 0, isActive: false, isPremium: false, trialEndsAt: "" };
   if (b.plan === "premium") {
+    // Premium auto-expires if subscriptionRenewsAt has passed (mocking a failed renewal).
+    if (b.subscriptionRenewsAt && new Date(b.subscriptionRenewsAt).getTime() < Date.now()) {
+      return { plan: "expired", trialDaysLeft: 0, isActive: false, isPremium: false, trialEndsAt: b.trialEndsAt };
+    }
     return { plan: "premium", trialDaysLeft: 0, isActive: true, isPremium: true, trialEndsAt: b.trialEndsAt };
   }
   // Respect explicit cancellation/expiration
@@ -200,7 +204,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // ── actions ────────────────────────────────────────────────────────────────
   const login: AuthContextType["login"] = async (slug, email, password) => {
-    const cleanSlug = slug.trim().toLowerCase();
+    const cleanSlug = slugify(slug);
     const cleanEmail = email.trim().toLowerCase();
     const shop = barbershops.find((b) => b.slug === cleanSlug);
     if (!shop) return { ok: false, error: "Barbearia não encontrada com esse ID." };
@@ -249,7 +253,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const registerClient: AuthContextType["registerClient"] = async (data) => {
-    const slug = data.slug.trim().toLowerCase();
+    const slug = slugify(data.slug);
     const shop = barbershops.find((b) => b.slug === slug);
     if (!shop) return { ok: false, error: "Barbearia não encontrada." };
     const email = data.email.trim().toLowerCase();
@@ -265,7 +269,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUsers((p) => [...p, newUser]);
     setCurrentUserId(newUser.id);
     await AsyncStorage.setItem(SESSION_KEY, newUser.id).catch(() => {});
-    return { ok: true };
+    return { ok: true, barbershopId: shop.id, userId: newUser.id };
   };
 
   const upsertEmployeeUser: AuthContextType["upsertEmployeeUser"] = async (data) => {
@@ -304,7 +308,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const removeEmployeeUser = async (userId: string) => {
-    setUsers((p) => p.filter((u) => u.id !== userId));
+    if (!user) return;
+    setUsers((p) => p.filter((u) => !(u.id === userId && u.barbershopId === user.barbershopId)));
   };
 
   const upgradeToPremium = async () => {

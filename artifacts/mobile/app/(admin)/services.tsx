@@ -123,11 +123,20 @@ export default function ManagementScreen() {
     };
     const existingUser = findProfUser(profId);
 
-    // Validate access fields BEFORE persisting professional, so modal stays open on failure.
+    // Pre-validate ALL access constraints before mutating anything, so a failure
+    // here doesn't leave a half-saved professional behind.
     if (profForm.hasAccess) {
-      if (!profForm.email) { Alert.alert("Atenção", "Email é obrigatório para criar acesso de funcionário."); return; }
+      const cleanEmail = profForm.email.trim().toLowerCase();
+      if (!cleanEmail) { Alert.alert("Atenção", "Email é obrigatório para criar acesso de funcionário."); return; }
       if (!existingUser && !profForm.password) {
         Alert.alert("Atenção", "Defina uma senha para o novo acesso de funcionário.");
+        return;
+      }
+      const collision = barbershopUsers.find(
+        (u) => u.email.toLowerCase() === cleanEmail && u.id !== existingUser?.id
+      );
+      if (collision) {
+        Alert.alert("Erro no acesso", "Email já está em uso por outro usuário.");
         return;
       }
     }

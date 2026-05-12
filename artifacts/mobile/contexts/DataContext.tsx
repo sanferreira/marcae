@@ -154,6 +154,7 @@ interface DataContextType {
   cancelAppointment: (id: string) => Promise<void>;
   rescheduleAppointment: (id: string, newDate: string, newTime: string) => Promise<void>;
 
+  addClient: (c: Client) => Promise<void>;
   addCashEntry: (e: Omit<CashEntry, "barbershopId">) => Promise<void>;
   updateLoyaltySettings: (s: LoyaltySettings) => Promise<void>;
   getClientLoyalty: (clientId: string) => LoyaltyInfo;
@@ -366,15 +367,21 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   };
 
   const adjustClientLoyalty = async (clientId: string, points: number, description: string) => {
+    // Tenant guard: only mutate the client if it belongs to this barbershop.
+    const target = allClients.find((c) => c.id === clientId && sameTenant(c.barbershopId));
+    if (!target) return;
     setLoyaltyMap((prev) => {
       const ex = prev[clientId] ?? { currentPoints: 0, history: [] };
       const pts = Math.max(0, Math.min(ex.currentPoints + points, loyaltySettings.requiredPoints));
       return { ...prev, [clientId]: { currentPoints: pts, history: [{ id: Date.now().toString(), date: fmt(new Date()), points: Math.abs(points), description, type: points >= 0 ? "adjusted" : "redeemed" }, ...ex.history] } };
     });
     setAllClients((prev) =>
-      prev.map((c) => c.id === clientId ? { ...c, loyaltyPoints: Math.max(0, Math.min(c.loyaltyPoints + points, loyaltySettings.requiredPoints)) } : c)
+      prev.map((c) => (c.id === clientId && sameTenant(c.barbershopId)) ? { ...c, loyaltyPoints: Math.max(0, Math.min(c.loyaltyPoints + points, loyaltySettings.requiredPoints)) } : c)
     );
   };
+
+  const addClient: DataContextType["addClient"] = async (c) =>
+    setAllClients((prev) => [c, ...prev]);
 
   // ── helpers ─────────────────────────────────────────────────────────────────
   const getClientAppointments = (clientId: string) => appointments.filter((a) => a.clientId === clientId);
@@ -407,7 +414,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       addService, updateService, addProduct, updateProduct,
       addProfessional, updateProfessional, updateProfessionalSchedule,
       addAppointment, updateAppointmentStatus, cancelAppointment, rescheduleAppointment,
-      addCashEntry, updateLoyaltySettings, getClientLoyalty, adjustClientLoyalty,
+      addClient, addCashEntry, updateLoyaltySettings, getClientLoyalty, adjustClientLoyalty,
       getClientAppointments, getAvailableSlots, getProfessionalStats,
     }}>
       {children}
