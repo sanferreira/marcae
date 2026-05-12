@@ -1,0 +1,129 @@
+{
+  "colorScheme": "light",
+  "fonts": [
+    {
+      "family": "Inter",
+      "role": "body"
+    },
+    {
+      "family": "Space Grotesk",
+      "role": "heading"
+    },
+    {
+      "family": "Font Awesome 6 Free",
+      "role": "unknown"
+    }
+  ],
+  "colors": {
+    "primary": "#0A0E1A",
+    "secondary": "#141925",
+    "accent": "#FF5E3A",
+    "background": "#FAF7F2",
+    "textPrimary": "#0F1420",
+    "link": "#0F1420"
+  },
+  "typography": {
+    "fontFamilies": {
+      "primary": "Inter",
+      "heading": "Space Grotesk"
+    },
+    "fontStacks": {
+      "heading": [
+        "Space Grotesk",
+        "Inter",
+        "sans-serif"
+      ],
+      "body": [
+        "Inter",
+        "system-ui",
+        "-apple-system",
+        "sans-serif"
+      ],
+      "paragraph": [
+        "Inter",
+        "system-ui",
+        "-apple-system",
+        "sans-serif"
+      ]
+    },
+    "fontSizes": {
+      "h1": "84px",
+      "h2": "64px",
+      "body": "17px"
+    }
+  },
+  "spacing": {
+    "baseUnit": 12,
+    "borderRadius": "14px"
+  },
+  "components": {
+    "buttonPrimary": {
+      "background": "#FF5E3A",
+      "textColor": "#FFFFFF",
+      "borderRadius": "14px",
+      "borderRadiusCorners": {
+        "topLeft": "14px",
+        "topRight": "14px",
+        "bottomRight": "14px",
+        "bottomLeft": "14px"
+      },
+      "shadow": "rgba(10, 14, 26, 0.04) 0px 1px 2px 0px, rgba(10, 14, 26, 0.06) 0px 1px 3px 0px"
+    },
+    "buttonSecondary": {
+      "background": "#FFFFFF",
+      "textColor": "#0F1420",
+      "borderColor": "#E8E3DC",
+      "borderRadius": "14px",
+      "borderRadiusCorners": {
+        "topLeft": "14px",
+        "topRight": "14px",
+        "bottomRight": "14px",
+        "bottomLeft": "14px"
+      },
+      "shadow": "none"
+    }
+  },
+  "images": {
+    "logo": null,
+    "favicon": null,
+    "ogImage": "https://shozap.com.br/og-image.jpg"
+  },
+  "__llm_button_reasoning": {
+    "primary": {
+      "index": 5,
+      "text": "Começar 7 dias grátis",
+      "reasoning": "Button #5 has vibrant, brand-color background (#FF5E3A) and strong CTA text 'Começar 7 dias grátis', making it the primary call-to-action."
+    },
+    "secondary": {
+      "index": 8,
+      "text": "Como funciona",
+      "reasoning": "Button #8 has a different background color (#FFFFFF) and serves as a secondary action with the text 'Como funciona', providing additional information."
+    },
+    "confidence": 0.95
+  },
+  "personality": {
+    "tone": "modern",
+    "energy": "medium",
+    "targetAudience": "affiliates and e-commerce sellers"
+  },
+  "designSystem": {
+    "framework": "custom",
+    "componentLibrary": ""
+  },
+  "confidence": {
+    "buttons": 0.95,
+    "colors": 0.9,
+    "overall": 0.925
+  },
+  "__llm_metadata": {
+    "logoSelection": {
+      "llmCalled": false,
+      "llmSucceeded": false,
+      "finalSource": "none"
+    },
+    "buttonClassification": {
+      "llmCalled": true,
+      "llmSucceeded": true
+    }
+  }
+}
