@@ -156,6 +156,7 @@ interface DataContextType {
   addAppointment: (apt: Appointment) => Promise<void>;
   updateAppointmentStatus: (id: string, status: Appointment["status"], paymentMethod?: string) => Promise<void>;
   cancelAppointment: (id: string) => Promise<void>;
+  rescheduleAppointment: (id: string, newDate: string, newTime: string) => Promise<void>;
   // Cash
   addCashEntry: (e: CashEntry) => Promise<void>;
   // Loyalty
@@ -323,6 +324,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const cancelAppointment = async (id: string) =>
     setAppointments((p) => p.map((a) => a.id === id ? { ...a, status: "cancelled" } : a));
 
+  const rescheduleAppointment = async (id: string, newDate: string, newTime: string) =>
+    setAppointments((p) =>
+      p.map((a) => a.id === id ? { ...a, date: newDate, time: newTime, status: "confirmed" } : a)
+    );
+
   // ── cash ─────────────────────────────────────────────────────────────────
   const addCashEntry = async (e: CashEntry) => setCashEntries((p) => [e, ...p]);
 
@@ -375,7 +381,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       services, products, professionals, professionalSchedules, appointments, clients, cashEntries, loyaltySettings,
       addService, updateService, addProduct, updateProduct,
       addProfessional, updateProfessional, updateProfessionalSchedule,
-      addAppointment, updateAppointmentStatus, cancelAppointment,
+      addAppointment, updateAppointmentStatus, cancelAppointment, rescheduleAppointment,
       addCashEntry, updateLoyaltySettings, getClientLoyalty, adjustClientLoyalty,
       getClientAppointments, getAvailableSlots, getProfessionalStats,
     }}>
