@@ -14,6 +14,8 @@ import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { SubscriptionGate } from "@/components/SubscriptionGate";
+import { TrialBanner } from "@/components/TrialBanner";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { DataProvider } from "@/contexts/DataContext";
 
@@ -23,14 +25,19 @@ const queryClient = new QueryClient();
 
 function RootLayoutNav() {
   return (
-    <Stack screenOptions={{ headerShown: false, animation: "fade" }}>
-      <Stack.Screen name="index" />
-      <Stack.Screen name="(auth)" />
-      <Stack.Screen name="(client)" />
-      <Stack.Screen name="(employee)" />
-      <Stack.Screen name="(admin)" />
-      <Stack.Screen name="+not-found" />
-    </Stack>
+    <>
+      <SubscriptionGate />
+      <TrialBanner />
+      <Stack screenOptions={{ headerShown: false, animation: "fade" }}>
+        <Stack.Screen name="index" />
+        <Stack.Screen name="(auth)" />
+        <Stack.Screen name="(client)" />
+        <Stack.Screen name="(employee)" />
+        <Stack.Screen name="(admin)" />
+        <Stack.Screen name="upgrade" />
+        <Stack.Screen name="+not-found" />
+      </Stack>
+    </>
   );
 }
 
