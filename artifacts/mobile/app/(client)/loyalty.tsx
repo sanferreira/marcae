@@ -10,16 +10,20 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { LoyaltyProgressCard } from "@/components/LoyaltyProgressCard";
+import { useAuth } from "@/contexts/AuthContext";
 import { useData } from "@/contexts/DataContext";
 import { useColors } from "@/hooks/useColors";
 
 export default function LoyaltyScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { loyaltyInfo } = useData();
+  const { user } = useAuth();
+  const { getClientLoyalty } = useData();
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const botPad = Platform.OS === "web" ? 34 : insets.bottom;
+
+  const loyalty = getClientLoyalty(user?.id ?? "");
 
   const TYPE_CONFIG = {
     earned: { icon: "plus-circle" as const, color: "#22C55E", label: "Ganhou" },
@@ -30,7 +34,7 @@ export default function LoyaltyScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <FlatList
-        data={loyaltyInfo.history}
+        data={loyalty.history}
         keyExtractor={(item) => item.id}
         contentContainerStyle={[
           styles.content,
@@ -40,13 +44,13 @@ export default function LoyaltyScreen() {
         ListHeaderComponent={
           <>
             <Text style={[styles.title, { color: colors.foreground }]}>Fidelidade</Text>
-            <LoyaltyProgressCard loyalty={loyaltyInfo} />
+            <LoyaltyProgressCard loyalty={loyalty} />
 
             <View style={[styles.howItWorksCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
               <Text style={[styles.howTitle, { color: colors.foreground }]}>Como funciona?</Text>
               {[
                 { icon: "scissors" as const, text: "A cada serviço concluído, você ganha 1 ponto de fidelidade" },
-                { icon: "award" as const, text: `Ao atingir ${loyaltyInfo.requiredPoints} pontos, você ganha: ${loyaltyInfo.benefitDescription}` },
+                { icon: "award" as const, text: `Ao atingir ${loyalty.requiredPoints} pontos, você ganha: ${loyalty.benefitDescription}` },
                 { icon: "gift" as const, text: "O benefício é aplicado automaticamente no próximo agendamento" },
               ].map((item, i) => (
                 <View key={i} style={styles.howRow}>
@@ -92,6 +96,9 @@ export default function LoyaltyScreen() {
             <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
               Nenhum histórico ainda
             </Text>
+            <Text style={[styles.emptySubText, { color: colors.mutedForeground }]}>
+              Seus pontos aparecerão aqui após cada atendimento
+            </Text>
           </View>
         }
       />
@@ -112,34 +119,24 @@ const styles = StyleSheet.create({
   howTitle: { fontSize: 15, fontFamily: "Inter_700Bold", marginBottom: 4 },
   howRow: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
   howIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 1,
+    width: 32, height: 32, borderRadius: 8,
+    alignItems: "center", justifyContent: "center", marginTop: 1,
   },
   howText: { flex: 1, fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 19 },
   historyTitle: { fontSize: 18, fontFamily: "Inter_700Bold", marginTop: 4 },
   historyItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    borderRadius: 14,
-    padding: 14,
-    borderWidth: 1,
+    flexDirection: "row", alignItems: "center", gap: 12,
+    borderRadius: 14, padding: 14, borderWidth: 1,
   },
   historyIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
+    width: 40, height: 40, borderRadius: 10,
+    alignItems: "center", justifyContent: "center",
   },
   historyInfo: { flex: 1, gap: 3 },
   historyDesc: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
   historyDate: { fontSize: 12, fontFamily: "Inter_400Regular" },
   historyPoints: { fontSize: 18, fontFamily: "Inter_700Bold" },
   empty: { alignItems: "center", paddingVertical: 40, gap: 8 },
-  emptyText: { fontSize: 14, fontFamily: "Inter_400Regular" },
+  emptyText: { fontSize: 15, fontFamily: "Inter_600SemiBold" },
+  emptySubText: { fontSize: 13, fontFamily: "Inter_400Regular", textAlign: "center" },
 });

@@ -20,11 +20,12 @@ export default function ProfileScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { user, logout } = useAuth();
-  const { appointments, loyaltyInfo } = useData();
+  const { appointments, getClientLoyalty } = useData();
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const botPad = Platform.OS === "web" ? 34 : insets.bottom;
 
+  const loyalty = getClientLoyalty(user?.id ?? "");
   const myApts = appointments.filter((a) => a.clientId === user?.id);
   const completedApts = myApts.filter((a) => a.status === "completed");
   const totalSpent = completedApts.reduce((s, a) => s + a.totalPrice, 0);
@@ -46,7 +47,7 @@ export default function ProfileScreen() {
   const MENU_ITEMS = [
     { icon: "calendar" as const, label: "Meus agendamentos", count: myApts.length },
     { icon: "check-circle" as const, label: "Serviços realizados", count: completedApts.length },
-    { icon: "award" as const, label: "Pontos de fidelidade", count: loyaltyInfo.currentPoints },
+    { icon: "award" as const, label: "Pontos de fidelidade", count: loyalty.currentPoints },
   ];
 
   return (
@@ -85,7 +86,7 @@ export default function ProfileScreen() {
             <Text style={[styles.statLabel, { color: colors.mutedForeground }]}>Total gasto</Text>
           </View>
           <View style={[styles.statBox, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Text style={[styles.statValue, { color: colors.gold }]}>{loyaltyInfo.currentPoints}</Text>
+            <Text style={[styles.statValue, { color: colors.gold }]}>{loyalty.currentPoints}</Text>
             <Text style={[styles.statLabel, { color: colors.mutedForeground }]}>Pontos</Text>
           </View>
         </View>
@@ -127,19 +128,12 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 20, gap: 16 },
   title: { fontSize: 24, fontFamily: "Inter_700Bold" },
   profileCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 16,
-    padding: 20,
-    borderRadius: 18,
-    borderWidth: 1,
+    flexDirection: "row", alignItems: "center", gap: 16,
+    padding: 20, borderRadius: 18, borderWidth: 1,
   },
   avatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    alignItems: "center",
-    justifyContent: "center",
+    width: 64, height: 64, borderRadius: 32,
+    alignItems: "center", justifyContent: "center",
   },
   avatarText: { fontSize: 22, fontFamily: "Inter_700Bold", color: "#0C0C0C" },
   profileInfo: { flex: 1, gap: 4 },
@@ -148,43 +142,24 @@ const styles = StyleSheet.create({
   profilePhone: { fontSize: 13, fontFamily: "Inter_400Regular" },
   statsRow: { flexDirection: "row", gap: 10 },
   statBox: {
-    flex: 1,
-    alignItems: "center",
-    paddingVertical: 16,
-    borderRadius: 14,
-    borderWidth: 1,
-    gap: 4,
+    flex: 1, alignItems: "center", paddingVertical: 16,
+    borderRadius: 14, borderWidth: 1, gap: 4,
   },
   statValue: { fontSize: 20, fontFamily: "Inter_700Bold" },
   statLabel: { fontSize: 11, fontFamily: "Inter_400Regular" },
-  menuCard: {
-    borderRadius: 16,
-    borderWidth: 1,
-    overflow: "hidden",
-  },
+  menuCard: { borderRadius: 16, borderWidth: 1, overflow: "hidden" },
   menuItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    padding: 16,
+    flexDirection: "row", alignItems: "center", gap: 12, padding: 16,
   },
   menuIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
+    width: 36, height: 36, borderRadius: 10,
+    alignItems: "center", justifyContent: "center",
   },
   menuLabel: { flex: 1, fontSize: 14, fontFamily: "Inter_500Medium" },
   menuCount: { fontSize: 16, fontFamily: "Inter_700Bold" },
   logoutBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    paddingVertical: 14,
-    borderRadius: 14,
-    borderWidth: 1.5,
+    flexDirection: "row", alignItems: "center", justifyContent: "center",
+    gap: 8, paddingVertical: 14, borderRadius: 14, borderWidth: 1.5,
   },
   logoutText: { fontSize: 15, fontFamily: "Inter_600SemiBold" },
 });
