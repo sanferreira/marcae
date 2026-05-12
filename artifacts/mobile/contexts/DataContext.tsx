@@ -21,6 +21,37 @@ export interface Product {
   isActive: boolean;
 }
 
+export const DAY_KEYS = ["seg", "ter", "qua", "qui", "sex", "sab", "dom"] as const;
+export type DayKey = typeof DAY_KEYS[number];
+
+export const DAY_LABELS: Record<DayKey, string> = {
+  seg: "Segunda", ter: "Terça", qua: "Quarta",
+  qui: "Quinta", sex: "Sexta", sab: "Sábado", dom: "Domingo",
+};
+export const DAY_SHORT: Record<DayKey, string> = {
+  seg: "Seg", ter: "Ter", qua: "Qua", qui: "Qui", sex: "Sex", sab: "Sáb", dom: "Dom",
+};
+// JS getDay() → DayKey
+const JS_DAY_MAP: DayKey[] = ["dom", "seg", "ter", "qua", "qui", "sex", "sab"];
+
+export interface WorkDay {
+  enabled: boolean;
+  startTime: string;
+  endTime: string;
+}
+
+export type ProfessionalSchedule = Record<DayKey, WorkDay>;
+
+export const DEFAULT_SCHEDULE: ProfessionalSchedule = {
+  seg: { enabled: true, startTime: "08:00", endTime: "18:00" },
+  ter: { enabled: true, startTime: "08:00", endTime: "18:00" },
+  qua: { enabled: true, startTime: "08:00", endTime: "18:00" },
+  qui: { enabled: true, startTime: "08:00", endTime: "18:00" },
+  sex: { enabled: true, startTime: "08:00", endTime: "18:00" },
+  sab: { enabled: true, startTime: "08:00", endTime: "13:00" },
+  dom: { enabled: false, startTime: "08:00", endTime: "12:00" },
+};
+
 export interface Professional {
   id: string;
   name: string;
@@ -30,6 +61,9 @@ export interface Professional {
   isAvailable: boolean;
   avatar: string;
   bio: string;
+  phone?: string;
+  email?: string;
+  commissionRate?: number;
 }
 
 export interface Appointment {
@@ -103,30 +137,40 @@ interface DataContextType {
   services: Service[];
   products: Product[];
   professionals: Professional[];
+  professionalSchedules: Record<string, ProfessionalSchedule>;
   appointments: Appointment[];
   clients: Client[];
   cashEntries: CashEntry[];
   loyaltySettings: LoyaltySettings;
-  addAppointment: (apt: Appointment) => Promise<void>;
-  updateAppointmentStatus: (
-    id: string,
-    status: Appointment["status"],
-    paymentMethod?: string
-  ) => Promise<void>;
-  cancelAppointment: (id: string) => Promise<void>;
+  // Service
   addService: (s: Service) => Promise<void>;
   updateService: (s: Service) => Promise<void>;
+  // Product
   addProduct: (p: Product) => Promise<void>;
   updateProduct: (p: Product) => Promise<void>;
+  // Professional
+  addProfessional: (p: Professional) => Promise<void>;
+  updateProfessional: (p: Professional) => Promise<void>;
+  updateProfessionalSchedule: (professionalId: string, schedule: ProfessionalSchedule) => Promise<void>;
+  // Appointment
+  addAppointment: (apt: Appointment) => Promise<void>;
+  updateAppointmentStatus: (id: string, status: Appointment["status"], paymentMethod?: string) => Promise<void>;
+  cancelAppointment: (id: string) => Promise<void>;
+  // Cash
   addCashEntry: (e: CashEntry) => Promise<void>;
+  // Loyalty
   updateLoyaltySettings: (s: LoyaltySettings) => Promise<void>;
   getClientLoyalty: (clientId: string) => LoyaltyInfo;
   adjustClientLoyalty: (clientId: string, points: number, description: string) => Promise<void>;
+  // Helpers
   getClientAppointments: (clientId: string) => Appointment[];
   getAvailableSlots: (date: string, professionalId: string, duration: number) => string[];
+  getProfessionalStats: (professionalId: string) => { completed: number; revenue: number; cancelRate: number };
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
+
+// ── seed data ─────────────────────────────────────────────────────────────────
 
 const INITIAL_SERVICES: Service[] = [
   { id: "s1", name: "Corte de Cabelo", price: 45, duration: 30, description: "Corte clássico ou moderno conforme sua preferência", category: "Cabelo", isActive: true },
@@ -147,45 +191,21 @@ const INITIAL_PRODUCTS: Product[] = [
 ];
 
 const INITIAL_PROFESSIONALS: Professional[] = [
-  { id: "p1", name: "Rafael Mendes", specialty: "Cortes Clássicos", rating: 4.9, appointmentsCount: 312, isAvailable: true, avatar: "RM", bio: "10 anos de experiência em cortes clássicos e modernos" },
-  { id: "p2", name: "Diego Santos", specialty: "Barbas & Design", rating: 4.8, appointmentsCount: 278, isAvailable: true, avatar: "DS", bio: "Especialista em design de barba e barbearia tradicional" },
-  { id: "p3", name: "Lucas Oliveira", specialty: "Cortes Modernos", rating: 4.7, appointmentsCount: 195, isAvailable: true, avatar: "LO", bio: "Focado nas tendências de cortes atuais e coloração" },
+  { id: "p1", name: "Rafael Mendes", specialty: "Cortes Clássicos", rating: 4.9, appointmentsCount: 312, isAvailable: true, avatar: "RM", bio: "10 anos de experiência em cortes clássicos e modernos", phone: "(11) 99111-1111", email: "rafael@barberpro.com", commissionRate: 50 },
+  { id: "p2", name: "Diego Santos", specialty: "Barbas & Design", rating: 4.8, appointmentsCount: 278, isAvailable: true, avatar: "DS", bio: "Especialista em design de barba e barbearia tradicional", phone: "(11) 99222-2222", email: "diego@barberpro.com", commissionRate: 50 },
+  { id: "p3", name: "Lucas Oliveira", specialty: "Cortes Modernos", rating: 4.7, appointmentsCount: 195, isAvailable: true, avatar: "LO", bio: "Focado nas tendências de cortes atuais e coloração", phone: "(11) 99333-3333", email: "lucas@barberpro.com", commissionRate: 45 },
 ];
 
 const TODAY = new Date();
 const fmt = (d: Date) => d.toISOString().split("T")[0];
 
 const INITIAL_APPOINTMENTS: Appointment[] = [
-  {
-    id: "a1", clientId: "client-001", clientName: "João Silva",
-    professionalId: "p1", professionalName: "Rafael Mendes",
-    services: [INITIAL_SERVICES[0]],
-    date: fmt(new Date(TODAY.getFullYear(), TODAY.getMonth(), TODAY.getDate() + 1)),
-    time: "09:00", totalPrice: 45, totalDuration: 30, status: "confirmed",
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: "a2", clientId: "client-001", clientName: "João Silva",
-    professionalId: "p2", professionalName: "Diego Santos",
-    services: [INITIAL_SERVICES[2]],
-    date: fmt(new Date(TODAY.getFullYear(), TODAY.getMonth(), TODAY.getDate() - 7)),
-    time: "14:00", totalPrice: 70, totalDuration: 50, status: "completed",
-    paymentMethod: "PIX", createdAt: new Date(TODAY.getTime() - 7 * 86400000).toISOString(),
-  },
-  {
-    id: "a3", clientId: "client-002", clientName: "Marcos Pereira",
-    professionalId: "p1", professionalName: "Rafael Mendes",
-    services: [INITIAL_SERVICES[0], INITIAL_SERVICES[1]],
-    date: fmt(TODAY), time: "11:00", totalPrice: 80, totalDuration: 55, status: "confirmed",
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: "a4", clientId: "client-003", clientName: "Bruno Lima",
-    professionalId: "p3", professionalName: "Lucas Oliveira",
-    services: [INITIAL_SERVICES[0]],
-    date: fmt(TODAY), time: "15:30", totalPrice: 45, totalDuration: 30, status: "pending",
-    createdAt: new Date().toISOString(),
-  },
+  { id: "a1", clientId: "client-001", clientName: "João Silva", professionalId: "p1", professionalName: "Rafael Mendes", services: [INITIAL_SERVICES[0]], date: fmt(new Date(TODAY.getFullYear(), TODAY.getMonth(), TODAY.getDate() + 1)), time: "09:00", totalPrice: 45, totalDuration: 30, status: "confirmed", createdAt: new Date().toISOString() },
+  { id: "a2", clientId: "client-001", clientName: "João Silva", professionalId: "p2", professionalName: "Diego Santos", services: [INITIAL_SERVICES[2]], date: fmt(new Date(TODAY.getFullYear(), TODAY.getMonth(), TODAY.getDate() - 7)), time: "14:00", totalPrice: 70, totalDuration: 50, status: "completed", paymentMethod: "PIX", createdAt: new Date(TODAY.getTime() - 7 * 86400000).toISOString() },
+  { id: "a3", clientId: "client-002", clientName: "Marcos Pereira", professionalId: "p1", professionalName: "Rafael Mendes", services: [INITIAL_SERVICES[0], INITIAL_SERVICES[1]], date: fmt(TODAY), time: "11:00", totalPrice: 80, totalDuration: 55, status: "confirmed", createdAt: new Date().toISOString() },
+  { id: "a4", clientId: "client-003", clientName: "Bruno Lima", professionalId: "p3", professionalName: "Lucas Oliveira", services: [INITIAL_SERVICES[0]], date: fmt(TODAY), time: "15:30", totalPrice: 45, totalDuration: 30, status: "pending", createdAt: new Date().toISOString() },
+  { id: "a5", clientId: "client-004", clientName: "André Costa", professionalId: "p2", professionalName: "Diego Santos", services: [INITIAL_SERVICES[2]], date: fmt(new Date(TODAY.getFullYear(), TODAY.getMonth(), TODAY.getDate() - 14)), time: "10:00", totalPrice: 70, totalDuration: 50, status: "completed", paymentMethod: "Cartão", createdAt: new Date(TODAY.getTime() - 14 * 86400000).toISOString() },
+  { id: "a6", clientId: "client-005", clientName: "Pedro Souza", professionalId: "p1", professionalName: "Rafael Mendes", services: [INITIAL_SERVICES[0]], date: fmt(new Date(TODAY.getFullYear(), TODAY.getMonth(), TODAY.getDate() - 30)), time: "16:00", totalPrice: 45, totalDuration: 30, status: "completed", paymentMethod: "Dinheiro", createdAt: new Date(TODAY.getTime() - 30 * 86400000).toISOString() },
 ];
 
 const INITIAL_CLIENTS: Client[] = [
@@ -202,188 +222,163 @@ const INITIAL_CASH: CashEntry[] = [
   { id: "c3", description: "Produtos de cabelo", amount: 180, type: "expense", category: "Produto", paymentMethod: "Cartão de Débito", date: fmt(TODAY) },
 ];
 
-// Per-client loyalty data — keyed by clientId
 const INITIAL_LOYALTY_MAP: Record<string, ClientLoyalty> = {
-  "client-001": {
-    currentPoints: 4,
-    history: [
-      { id: "l1", date: fmt(new Date(TODAY.getTime() - 7 * 86400000)), points: 1, description: "Corte + Barba realizado", type: "earned" },
-      { id: "l2", date: fmt(new Date(TODAY.getTime() - 21 * 86400000)), points: 1, description: "Corte de Cabelo realizado", type: "earned" },
-      { id: "l3", date: fmt(new Date(TODAY.getTime() - 35 * 86400000)), points: 1, description: "Corte + Barba realizado", type: "earned" },
-      { id: "l4", date: fmt(new Date(TODAY.getTime() - 49 * 86400000)), points: 1, description: "Corte de Cabelo realizado", type: "earned" },
-    ],
-  },
+  "client-001": { currentPoints: 4, history: [
+    { id: "l1", date: fmt(new Date(TODAY.getTime() - 7 * 86400000)), points: 1, description: "Corte + Barba realizado", type: "earned" },
+    { id: "l2", date: fmt(new Date(TODAY.getTime() - 21 * 86400000)), points: 1, description: "Corte de Cabelo realizado", type: "earned" },
+    { id: "l3", date: fmt(new Date(TODAY.getTime() - 35 * 86400000)), points: 1, description: "Corte + Barba realizado", type: "earned" },
+    { id: "l4", date: fmt(new Date(TODAY.getTime() - 49 * 86400000)), points: 1, description: "Corte de Cabelo realizado", type: "earned" },
+  ]},
   "client-002": { currentPoints: 7, history: [
     { id: "lm1", date: fmt(new Date(TODAY.getTime() - 5 * 86400000)), points: 1, description: "Corte + Barba realizado", type: "earned" },
-    { id: "lm2", date: fmt(new Date(TODAY.getTime() - 18 * 86400000)), points: 1, description: "Corte realizado", type: "earned" },
-    { id: "lm3", date: fmt(new Date(TODAY.getTime() - 30 * 86400000)), points: 5, description: "Ajuste de pontos", type: "adjusted" },
+    { id: "lm2", date: fmt(new Date(TODAY.getTime() - 30 * 86400000)), points: 6, description: "Pontos acumulados", type: "adjusted" },
   ]},
-  "client-003": { currentPoints: 3, history: [
-    { id: "lb1", date: fmt(new Date(TODAY.getTime() - 14 * 86400000)), points: 3, description: "Cortes realizados", type: "earned" },
-  ]},
+  "client-003": { currentPoints: 3, history: [{ id: "lb1", date: fmt(new Date(TODAY.getTime() - 14 * 86400000)), points: 3, description: "Cortes realizados", type: "earned" }]},
   "client-004": { currentPoints: 9, history: [
     { id: "la1", date: fmt(new Date(TODAY.getTime() - 3 * 86400000)), points: 1, description: "Corte realizado", type: "earned" },
     { id: "la2", date: fmt(new Date(TODAY.getTime() - 12 * 86400000)), points: 8, description: "Pontos acumulados", type: "adjusted" },
   ]},
-  "client-005": { currentPoints: 2, history: [
-    { id: "lp1", date: fmt(new Date(TODAY.getTime() - 30 * 86400000)), points: 2, description: "Cortes realizados", type: "earned" },
-  ]},
+  "client-005": { currentPoints: 2, history: [{ id: "lp1", date: fmt(new Date(TODAY.getTime() - 30 * 86400000)), points: 2, description: "Cortes realizados", type: "earned" }]},
 };
 
-const INITIAL_LOYALTY_SETTINGS: LoyaltySettings = {
-  requiredPoints: 10,
-  benefitDescription: "Corte de cabelo gratuito",
+const INITIAL_LOYALTY_SETTINGS: LoyaltySettings = { requiredPoints: 10, benefitDescription: "Corte de cabelo gratuito" };
+
+const INITIAL_SCHEDULES: Record<string, ProfessionalSchedule> = {
+  p1: { ...DEFAULT_SCHEDULE },
+  p2: { ...DEFAULT_SCHEDULE, dom: { enabled: false, startTime: "08:00", endTime: "12:00" } },
+  p3: { ...DEFAULT_SCHEDULE, seg: { enabled: false, startTime: "08:00", endTime: "18:00" }, sab: { enabled: false, startTime: "08:00", endTime: "13:00" } },
 };
 
-const WORK_HOURS = [
-  "08:00","08:30","09:00","09:30","10:00","10:30",
-  "11:00","11:30","14:00","14:30","15:00","15:30",
-  "16:00","16:30","17:00","17:30","18:00","18:30",
-];
+// ── helpers ───────────────────────────────────────────────────────────────────
+
+function generateTimeSlots(startTime: string, endTime: string, intervalMins = 30): string[] {
+  const [sh, sm] = startTime.split(":").map(Number);
+  const [eh, em] = endTime.split(":").map(Number);
+  const slots: string[] = [];
+  let total = sh * 60 + sm;
+  const end = eh * 60 + em;
+  while (total < end) {
+    slots.push(`${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`);
+    total += intervalMins;
+  }
+  return slots;
+}
+
+// ── provider ──────────────────────────────────────────────────────────────────
 
 export function DataProvider({ children }: { children: React.ReactNode }) {
   const [services, setServices] = useState<Service[]>(INITIAL_SERVICES);
   const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
-  const [professionals] = useState<Professional[]>(INITIAL_PROFESSIONALS);
+  const [professionals, setProfessionals] = useState<Professional[]>(INITIAL_PROFESSIONALS);
+  const [professionalSchedules, setProfessionalSchedules] = useState<Record<string, ProfessionalSchedule>>(INITIAL_SCHEDULES);
   const [appointments, setAppointments] = useState<Appointment[]>(INITIAL_APPOINTMENTS);
   const [clients, setClients] = useState<Client[]>(INITIAL_CLIENTS);
   const [cashEntries, setCashEntries] = useState<CashEntry[]>(INITIAL_CASH);
   const [loyaltyMap, setLoyaltyMap] = useState<Record<string, ClientLoyalty>>(INITIAL_LOYALTY_MAP);
   const [loyaltySettings, setLoyaltySettings] = useState<LoyaltySettings>(INITIAL_LOYALTY_SETTINGS);
 
-  const getClientLoyalty = (clientId: string): LoyaltyInfo => {
-    const entry = loyaltyMap[clientId] ?? { currentPoints: 0, history: [] };
-    return {
-      currentPoints: entry.currentPoints,
-      requiredPoints: loyaltySettings.requiredPoints,
-      benefitDescription: loyaltySettings.benefitDescription,
-      history: entry.history,
-    };
-  };
+  // ── services ────────────────────────────────────────────────────────────────
+  const addService = async (s: Service) => setServices((p) => [...p, s]);
+  const updateService = async (s: Service) => setServices((p) => p.map((sv) => sv.id === s.id ? s : sv));
 
-  const addAppointment = async (apt: Appointment) => {
-    setAppointments((prev) => [apt, ...prev]);
-  };
+  // ── products ────────────────────────────────────────────────────────────────
+  const addProduct = async (p: Product) => setProducts((prev) => [...prev, p]);
+  const updateProduct = async (p: Product) => setProducts((prev) => prev.map((pr) => pr.id === p.id ? p : pr));
 
-  const updateAppointmentStatus = async (
-    id: string,
-    status: Appointment["status"],
-    paymentMethod?: string
-  ) => {
-    let completedApt: Appointment | undefined;
+  // ── professionals ───────────────────────────────────────────────────────────
+  const addProfessional = async (p: Professional) => {
+    setProfessionals((prev) => [...prev, p]);
+    setProfessionalSchedules((prev) => ({ ...prev, [p.id]: { ...DEFAULT_SCHEDULE } }));
+  };
+  const updateProfessional = async (p: Professional) =>
+    setProfessionals((prev) => prev.map((pr) => pr.id === p.id ? p : pr));
+
+  const updateProfessionalSchedule = async (professionalId: string, schedule: ProfessionalSchedule) =>
+    setProfessionalSchedules((prev) => ({ ...prev, [professionalId]: schedule }));
+
+  // ── appointments ─────────────────────────────────────────────────────────
+  const addAppointment = async (apt: Appointment) => setAppointments((p) => [apt, ...p]);
+
+  const updateAppointmentStatus = async (id: string, status: Appointment["status"], paymentMethod?: string) => {
+    let done: Appointment | undefined;
     setAppointments((prev) =>
       prev.map((a) => {
-        if (a.id === id) {
-          completedApt = { ...a, status, ...(paymentMethod ? { paymentMethod } : {}) };
-          return completedApt;
-        }
+        if (a.id === id) { done = { ...a, status, ...(paymentMethod ? { paymentMethod } : {}) }; return done; }
         return a;
       })
     );
-
-    if (status === "completed" && completedApt) {
-      const { clientId, clientName } = completedApt;
-      // Award 1 loyalty point to the specific client
+    if (status === "completed" && done) {
+      const { clientId } = done;
       setLoyaltyMap((prev) => {
-        const existing = prev[clientId] ?? { currentPoints: 0, history: [] };
-        const newPoints = Math.min(
-          existing.currentPoints + 1,
-          loyaltySettings.requiredPoints
-        );
-        return {
-          ...prev,
-          [clientId]: {
-            currentPoints: newPoints,
-            history: [
-              {
-                id: Date.now().toString(),
-                date: fmt(new Date()),
-                points: 1,
-                description: `Atendimento concluído`,
-                type: "earned" as const,
-              },
-              ...existing.history,
-            ],
-          },
-        };
+        const ex = prev[clientId] ?? { currentPoints: 0, history: [] };
+        const pts = Math.min(ex.currentPoints + 1, loyaltySettings.requiredPoints);
+        return { ...prev, [clientId]: { currentPoints: pts, history: [{ id: Date.now().toString(), date: fmt(new Date()), points: 1, description: "Atendimento concluído", type: "earned" as const }, ...ex.history] } };
       });
-      // Update clients table loyalty points
       setClients((prev) =>
-        prev.map((c) =>
-          c.id === clientId
-            ? { ...c, loyaltyPoints: Math.min(c.loyaltyPoints + 1, loyaltySettings.requiredPoints), lastVisit: fmt(new Date()) }
-            : c
-        )
+        prev.map((c) => c.id === clientId ? { ...c, loyaltyPoints: Math.min(c.loyaltyPoints + 1, loyaltySettings.requiredPoints), lastVisit: fmt(new Date()) } : c)
       );
     }
   };
 
-  const cancelAppointment = async (id: string) => {
-    setAppointments((prev) =>
-      prev.map((a) => (a.id === id ? { ...a, status: "cancelled" } : a))
-    );
-  };
+  const cancelAppointment = async (id: string) =>
+    setAppointments((p) => p.map((a) => a.id === id ? { ...a, status: "cancelled" } : a));
 
-  const addService = async (s: Service) => setServices((prev) => [...prev, s]);
-  const updateService = async (s: Service) => setServices((prev) => prev.map((sv) => sv.id === s.id ? s : sv));
+  // ── cash ─────────────────────────────────────────────────────────────────
+  const addCashEntry = async (e: CashEntry) => setCashEntries((p) => [e, ...p]);
 
-  const addProduct = async (p: Product) => setProducts((prev) => [...prev, p]);
-  const updateProduct = async (p: Product) => setProducts((prev) => prev.map((pr) => pr.id === p.id ? p : pr));
-
-  const addCashEntry = async (e: CashEntry) => setCashEntries((prev) => [e, ...prev]);
-
+  // ── loyalty ──────────────────────────────────────────────────────────────
   const updateLoyaltySettings = async (s: LoyaltySettings) => setLoyaltySettings(s);
+
+  const getClientLoyalty = (clientId: string): LoyaltyInfo => {
+    const entry = loyaltyMap[clientId] ?? { currentPoints: 0, history: [] };
+    return { currentPoints: entry.currentPoints, requiredPoints: loyaltySettings.requiredPoints, benefitDescription: loyaltySettings.benefitDescription, history: entry.history };
+  };
 
   const adjustClientLoyalty = async (clientId: string, points: number, description: string) => {
     setLoyaltyMap((prev) => {
-      const existing = prev[clientId] ?? { currentPoints: 0, history: [] };
-      const newPoints = Math.max(0, Math.min(existing.currentPoints + points, loyaltySettings.requiredPoints));
-      return {
-        ...prev,
-        [clientId]: {
-          currentPoints: newPoints,
-          history: [
-            {
-              id: Date.now().toString(),
-              date: fmt(new Date()),
-              points: Math.abs(points),
-              description,
-              type: points >= 0 ? ("adjusted" as const) : ("redeemed" as const),
-            },
-            ...existing.history,
-          ],
-        },
-      };
+      const ex = prev[clientId] ?? { currentPoints: 0, history: [] };
+      const pts = Math.max(0, Math.min(ex.currentPoints + points, loyaltySettings.requiredPoints));
+      return { ...prev, [clientId]: { currentPoints: pts, history: [{ id: Date.now().toString(), date: fmt(new Date()), points: Math.abs(points), description, type: points >= 0 ? ("adjusted" as const) : ("redeemed" as const) }, ...ex.history] } };
     });
     setClients((prev) =>
-      prev.map((c) =>
-        c.id === clientId
-          ? { ...c, loyaltyPoints: Math.max(0, Math.min(c.loyaltyPoints + points, loyaltySettings.requiredPoints)) }
-          : c
-      )
+      prev.map((c) => c.id === clientId ? { ...c, loyaltyPoints: Math.max(0, Math.min(c.loyaltyPoints + points, loyaltySettings.requiredPoints)) } : c)
     );
   };
 
-  const getClientAppointments = (clientId: string) =>
-    appointments.filter((a) => a.clientId === clientId);
+  // ── helpers ──────────────────────────────────────────────────────────────
+  const getClientAppointments = (clientId: string) => appointments.filter((a) => a.clientId === clientId);
 
   const getAvailableSlots = (date: string, professionalId: string, duration: number): string[] => {
+    const schedule = professionalSchedules[professionalId] ?? DEFAULT_SCHEDULE;
+    const dayOfWeek = new Date(date + "T12:00:00").getDay();
+    const dayKey = JS_DAY_MAP[dayOfWeek];
+    const workDay = schedule[dayKey];
+    if (!workDay.enabled) return [];
+    const allSlots = generateTimeSlots(workDay.startTime, workDay.endTime, 30);
     const booked = appointments
       .filter((a) => a.date === date && a.professionalId === professionalId && a.status !== "cancelled")
       .map((a) => a.time);
-    return WORK_HOURS.filter((slot) => !booked.includes(slot));
+    return allSlots.filter((s) => !booked.includes(s));
+  };
+
+  const getProfessionalStats = (professionalId: string) => {
+    const apts = appointments.filter((a) => a.professionalId === professionalId);
+    const completed = apts.filter((a) => a.status === "completed");
+    const cancelled = apts.filter((a) => a.status === "cancelled");
+    const revenue = completed.reduce((s, a) => s + a.totalPrice, 0);
+    const cancelRate = apts.length > 0 ? Math.round((cancelled.length / apts.length) * 100) : 0;
+    return { completed: completed.length, revenue, cancelRate };
   };
 
   return (
-    <DataContext.Provider
-      value={{
-        services, products, professionals, appointments, clients, cashEntries,
-        loyaltySettings, addAppointment, updateAppointmentStatus, cancelAppointment,
-        addService, updateService, addProduct, updateProduct, addCashEntry,
-        updateLoyaltySettings, getClientLoyalty, adjustClientLoyalty,
-        getClientAppointments, getAvailableSlots,
-      }}
-    >
+    <DataContext.Provider value={{
+      services, products, professionals, professionalSchedules, appointments, clients, cashEntries, loyaltySettings,
+      addService, updateService, addProduct, updateProduct,
+      addProfessional, updateProfessional, updateProfessionalSchedule,
+      addAppointment, updateAppointmentStatus, cancelAppointment,
+      addCashEntry, updateLoyaltySettings, getClientLoyalty, adjustClientLoyalty,
+      getClientAppointments, getAvailableSlots, getProfessionalStats,
+    }}>
       {children}
     </DataContext.Provider>
   );
