@@ -1,5 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   Alert,
@@ -21,8 +22,9 @@ import { useColors } from "@/hooks/useColors";
 export default function DashboardScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { user, logout } = useAuth();
+  const { user, logout, barbershop, planStatus } = useAuth();
   const { appointments, cashEntries, clients, updateAppointmentStatus, cancelAppointment } = useData();
+  const router = useRouter();
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const botPad = Platform.OS === "web" ? 34 : insets.bottom;
@@ -79,6 +81,38 @@ export default function DashboardScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
+        {barbershop && (planStatus.plan !== "premium") && (
+          <TouchableOpacity
+            onPress={() => router.push("/(admin)/services?tab=plan" as any)}
+            style={[
+              styles.planBanner,
+              {
+                backgroundColor: planStatus.plan === "expired" ? "#7F1D1D22" : colors.gold + "15",
+                borderColor: planStatus.plan === "expired" ? colors.destructive : colors.gold + "55",
+              },
+            ]}
+          >
+            <Feather
+              name={planStatus.plan === "expired" ? "alert-circle" : "clock"}
+              size={18}
+              color={planStatus.plan === "expired" ? colors.destructive : colors.gold}
+            />
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.planBannerTitle, { color: colors.foreground }]}>
+                {planStatus.plan === "expired"
+                  ? "Plano expirado"
+                  : `Trial gratuito · ${planStatus.trialDaysLeft} dia${planStatus.trialDaysLeft !== 1 ? "s" : ""} restante${planStatus.trialDaysLeft !== 1 ? "s" : ""}`}
+              </Text>
+              <Text style={[styles.planBannerSub, { color: colors.mutedForeground }]}>
+                {planStatus.plan === "expired"
+                  ? "Reative para continuar usando o sistema."
+                  : "Toque para assinar Premium por R$59/mês."}
+              </Text>
+            </View>
+            <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
+          </TouchableOpacity>
+        )}
+
         <View style={styles.headerRow}>
           <View>
             <Text style={[styles.greeting, { color: colors.mutedForeground }]}>
@@ -249,4 +283,7 @@ const styles = StyleSheet.create({
   topServiceRankText: { fontSize: 13, fontFamily: "Inter_700Bold" },
   topServiceName: { flex: 1, fontSize: 14, fontFamily: "Inter_500Medium" },
   topServiceCount: { fontSize: 14, fontFamily: "Inter_700Bold" },
+  planBanner: { flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderRadius: 14, borderWidth: 1.5 },
+  planBannerTitle: { fontSize: 13, fontFamily: "Inter_700Bold", marginBottom: 2 },
+  planBannerSub: { fontSize: 11, fontFamily: "Inter_400Regular" },
 });

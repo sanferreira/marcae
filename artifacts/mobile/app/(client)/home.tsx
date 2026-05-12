@@ -111,7 +111,7 @@ export default function HomeScreen() {
     if (!user || !selectedProf) return;
     setLoading(true);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    const apt: Appointment = {
+    const apt: Omit<Appointment, "barbershopId"> = {
       id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
       clientId: user.id,
       clientName: user.name,

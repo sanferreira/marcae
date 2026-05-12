@@ -21,9 +21,10 @@ import {
   Product, Professional, ProfessionalSchedule, Service,
   useData,
 } from "@/contexts/DataContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
 
-type Tab = "services" | "products" | "team" | "loyalty";
+type Tab = "services" | "products" | "team" | "loyalty" | "plan";
 
 export default function ManagementScreen() {
   const colors = useColors();
@@ -35,6 +36,11 @@ export default function ManagementScreen() {
     loyaltySettings, updateLoyaltySettings, getProfessionalStats,
     appointments,
   } = useData();
+  const {
+    barbershop, planStatus, barbershopUsers,
+    upsertEmployeeUser, removeEmployeeUser,
+    upgradeToPremium, cancelSubscription,
+  } = useAuth();
 
   const [tab, setTab] = useState<Tab>("services");
   const topPad = Platform.OS === "web" ? 67 : insets.top;
@@ -51,7 +57,7 @@ export default function ManagementScreen() {
   const saveSvc = async () => {
     if (!svcForm.name || !svcForm.price || !svcForm.duration) { Alert.alert("Preencha nome, preço e duração"); return; }
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    const s: Service = { id: editingSvc?.id ?? Date.now().toString(), name: svcForm.name, price: parseFloat(svcForm.price), duration: parseInt(svcForm.duration, 10), description: svcForm.description, category: svcForm.category, isActive: editingSvc?.isActive ?? true };
+    const s: Service = { id: editingSvc?.id ?? Date.now().toString(), barbershopId: editingSvc?.barbershopId ?? (barbershop?.id ?? ""), name: svcForm.name, price: parseFloat(svcForm.price), duration: parseInt(svcForm.duration, 10), description: svcForm.description, category: svcForm.category, isActive: editingSvc?.isActive ?? true };
     if (editingSvc) await updateService(s); else await addService(s);
     setServiceModal(false);
   };
@@ -68,7 +74,7 @@ export default function ManagementScreen() {
   const saveProd = async () => {
     if (!prodForm.name || !prodForm.price || !prodForm.stock) { Alert.alert("Preencha nome, preço e estoque"); return; }
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    const p: Product = { id: editingProd?.id ?? Date.now().toString(), name: prodForm.name, price: parseFloat(prodForm.price), costPrice: parseFloat(prodForm.costPrice || "0"), stock: parseInt(prodForm.stock, 10), category: prodForm.category, description: prodForm.description, isActive: editingProd?.isActive ?? true };
+    const p: Product = { id: editingProd?.id ?? Date.now().toString(), barbershopId: editingProd?.barbershopId ?? (barbershop?.id ?? ""), name: prodForm.name, price: parseFloat(prodForm.price), costPrice: parseFloat(prodForm.costPrice || "0"), stock: parseInt(prodForm.stock, 10), category: prodForm.category, description: prodForm.description, isActive: editingProd?.isActive ?? true };
     if (editingProd) await updateProduct(p); else await addProduct(p);
     setProductModal(false);
   };
@@ -79,21 +85,34 @@ export default function ManagementScreen() {
   const [scheduleModal, setScheduleModal] = useState(false);
   const [editingProf, setEditingProf] = useState<Professional | null>(null);
   const [scheduleProf, setScheduleProf] = useState<Professional | null>(null);
-  const [profForm, setProfForm] = useState({ name: "", specialty: "", bio: "", phone: "", email: "", commissionRate: "50" });
+  const [profForm, setProfForm] = useState({ name: "", specialty: "", bio: "", phone: "", email: "", commissionRate: "50", hasAccess: false, password: "" });
   const [editSchedule, setEditSchedule] = useState<ProfessionalSchedule>({ ...DEFAULT_SCHEDULE });
 
-  const openNewProf = () => { setEditingProf(null); setProfForm({ name: "", specialty: "", bio: "", phone: "", email: "", commissionRate: "50" }); setTeamModal(true); };
+  const findProfUser = (profId: string) => barbershopUsers.find((u) => u.role === "employee" && u.professionalId === profId);
+
+  const openNewProf = () => {
+    setEditingProf(null);
+    setProfForm({ name: "", specialty: "", bio: "", phone: "", email: "", commissionRate: "50", hasAccess: false, password: "" });
+    setTeamModal(true);
+  };
   const openEditProf = (p: Professional) => {
     setEditingProf(p);
-    setProfForm({ name: p.name, specialty: p.specialty, bio: p.bio, phone: p.phone ?? "", email: p.email ?? "", commissionRate: (p.commissionRate ?? 50).toString() });
+    const linkedUser = findProfUser(p.id);
+    setProfForm({
+      name: p.name, specialty: p.specialty, bio: p.bio,
+      phone: p.phone ?? "", email: p.email ?? linkedUser?.email ?? "",
+      commissionRate: (p.commissionRate ?? 50).toString(),
+      hasAccess: !!linkedUser, password: "",
+    });
     setTeamModal(true);
   };
   const saveProf = async () => {
     if (!profForm.name || !profForm.specialty) { Alert.alert("Preencha nome e especialidade"); return; }
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     const initials = profForm.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
+    const profId = editingProf?.id ?? Date.now().toString();
     const p: Professional = {
-      id: editingProf?.id ?? Date.now().toString(),
+      id: profId, barbershopId: editingProf?.barbershopId ?? (barbershop?.id ?? ""),
       name: profForm.name, specialty: profForm.specialty, bio: profForm.bio,
       phone: profForm.phone, email: profForm.email,
       commissionRate: parseInt(profForm.commissionRate || "50", 10),
@@ -102,7 +121,29 @@ export default function ManagementScreen() {
       isAvailable: editingProf?.isAvailable ?? true,
       avatar: initials,
     };
+    const existingUser = findProfUser(profId);
+
+    // Validate access fields BEFORE persisting professional, so modal stays open on failure.
+    if (profForm.hasAccess) {
+      if (!profForm.email) { Alert.alert("Atenção", "Email é obrigatório para criar acesso de funcionário."); return; }
+      if (!existingUser && !profForm.password) {
+        Alert.alert("Atenção", "Defina uma senha para o novo acesso de funcionário.");
+        return;
+      }
+    }
+
     if (editingProf) await updateProfessional(p); else await addProfessional(p);
+
+    if (profForm.hasAccess) {
+      const res = await upsertEmployeeUser({
+        professionalId: profId, name: profForm.name, email: profForm.email,
+        password: profForm.password, // empty string means "keep current" for existing users
+        phone: profForm.phone,
+      });
+      if (!res.ok) { Alert.alert("Erro no acesso", res.error ?? ""); return; }
+    } else if (existingUser) {
+      await removeEmployeeUser(existingUser.id);
+    }
     setTeamModal(false);
   };
   const openSchedule = (p: Professional) => {
@@ -142,7 +183,42 @@ export default function ManagementScreen() {
     { key: "products", label: "Produtos", icon: "package" },
     { key: "team", label: "Equipe", icon: "users" },
     { key: "loyalty", label: "Fidelidade", icon: "award" },
+    { key: "plan", label: "Plano", icon: "credit-card" },
   ];
+
+  const handleSubscribe = () => {
+    Alert.alert(
+      "Assinar Premium",
+      "Confirmar assinatura do plano Premium por R$59/mês? (Cobrança simulada — em produção integraria com Stripe)",
+      [
+        { text: "Cancelar", style: "cancel" },
+        { text: "Confirmar", onPress: async () => {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          await upgradeToPremium();
+          Alert.alert("Sucesso", "Plano Premium ativado por 30 dias.");
+        }},
+      ]
+    );
+  };
+
+  const handleCancelSub = () => {
+    Alert.alert(
+      "Cancelar assinatura",
+      "Tem certeza? Você perderá acesso ao sistema imediatamente.",
+      [
+        { text: "Voltar", style: "cancel" },
+        { text: "Cancelar plano", style: "destructive", onPress: async () => {
+          await cancelSubscription();
+        }},
+      ]
+    );
+  };
+
+  const planLabel = planStatus.plan === "trial" ? "Trial gratuito" : planStatus.plan === "premium" ? "Premium" : "Expirado";
+  const planAccent = planStatus.plan === "premium" ? "#22C55E" : planStatus.plan === "trial" ? colors.gold : colors.destructive;
+  const trialProgress = barbershop && planStatus.plan === "trial"
+    ? Math.max(0, Math.min(1, planStatus.trialDaysLeft / 7))
+    : 0;
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -394,6 +470,108 @@ export default function ManagementScreen() {
         </ScrollView>
       )}
 
+      {/* ── PLAN TAB ── */}
+      {tab === "plan" && barbershop && (
+        <ScrollView contentContainerStyle={[styles.loyaltyContent, { paddingBottom: botPad + 100 }]} showsVerticalScrollIndicator={false}>
+          <View style={[styles.planHeroCard, { backgroundColor: colors.card, borderColor: planAccent + "55" }]}>
+            <View style={styles.planHeroTop}>
+              <View style={[styles.planBadge, { backgroundColor: planAccent }]}>
+                <Text style={styles.planBadgeText}>{planLabel.toUpperCase()}</Text>
+              </View>
+              <Feather name={planStatus.plan === "premium" ? "check-circle" : planStatus.plan === "trial" ? "clock" : "alert-circle"} size={22} color={planAccent} />
+            </View>
+            <Text style={[styles.planShopName, { color: colors.foreground }]}>{barbershop.name}</Text>
+            <Text style={[styles.planShopSlug, { color: colors.mutedForeground }]}>ID: {barbershop.slug}</Text>
+
+            {planStatus.plan === "trial" && (
+              <View style={{ marginTop: 14 }}>
+                <View style={styles.planRow}>
+                  <Text style={[styles.planRowLabel, { color: colors.mutedForeground }]}>Restam</Text>
+                  <Text style={[styles.planRowValue, { color: colors.gold }]}>{planStatus.trialDaysLeft} dia{planStatus.trialDaysLeft !== 1 ? "s" : ""}</Text>
+                </View>
+                <View style={[styles.planProgressTrack, { backgroundColor: colors.secondary }]}>
+                  <View style={[styles.planProgressFill, { backgroundColor: colors.gold, width: `${trialProgress * 100}%` }]} />
+                </View>
+                <Text style={[styles.planHint, { color: colors.mutedForeground }]}>
+                  Trial termina em {new Date(barbershop.trialEndsAt).toLocaleDateString("pt-BR")}. Assine para manter acesso ininterrupto.
+                </Text>
+              </View>
+            )}
+            {planStatus.plan === "premium" && (
+              <View style={{ marginTop: 14 }}>
+                <View style={styles.planRow}>
+                  <Text style={[styles.planRowLabel, { color: colors.mutedForeground }]}>Renova em</Text>
+                  <Text style={[styles.planRowValue, { color: colors.foreground }]}>
+                    {barbershop.subscriptionRenewsAt ? new Date(barbershop.subscriptionRenewsAt).toLocaleDateString("pt-BR") : "—"}
+                  </Text>
+                </View>
+                <Text style={[styles.planHint, { color: colors.mutedForeground }]}>
+                  Sua assinatura está ativa. Cobrança mensal de R$59 no cartão cadastrado.
+                </Text>
+              </View>
+            )}
+            {planStatus.plan === "expired" && (
+              <Text style={[styles.planHint, { color: colors.destructive, marginTop: 14 }]}>
+                Seu plano expirou em {new Date(barbershop.trialEndsAt).toLocaleDateString("pt-BR")}. Assine para liberar o sistema.
+              </Text>
+            )}
+          </View>
+
+          {/* Pricing card */}
+          <View style={[styles.priceCard, { backgroundColor: colors.gold + "12", borderColor: colors.gold + "55" }]}>
+            <Text style={[styles.priceTitle, { color: colors.foreground }]}>Premium BarberPro</Text>
+            <View style={styles.priceRow}>
+              <Text style={[styles.priceValue, { color: colors.gold }]}>R$59</Text>
+              <Text style={[styles.priceUnit, { color: colors.mutedForeground }]}>/mês</Text>
+            </View>
+            {[
+              "Atendimentos ilimitados",
+              "Equipe e funcionários sem limite",
+              "Agenda + financeiro completos",
+              "Programa de fidelidade",
+              "Suporte prioritário",
+            ].map((feat) => (
+              <View key={feat} style={styles.priceRowItem}>
+                <Feather name="check" size={14} color={colors.gold} />
+                <Text style={[styles.priceFeat, { color: colors.foreground }]}>{feat}</Text>
+              </View>
+            ))}
+            {planStatus.plan !== "premium" ? (
+              <TouchableOpacity style={[styles.subBtn, { backgroundColor: colors.gold }]} onPress={handleSubscribe}>
+                <Feather name="credit-card" size={16} color="#0C0C0C" />
+                <Text style={styles.subBtnText}>
+                  {planStatus.plan === "expired" ? "Reativar agora" : "Assinar Premium"}
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity style={[styles.subBtn, { backgroundColor: "transparent", borderWidth: 1.5, borderColor: colors.destructive + "55" }]} onPress={handleCancelSub}>
+                <Feather name="x" size={16} color={colors.destructive} />
+                <Text style={[styles.subBtnText, { color: colors.destructive }]}>Cancelar assinatura</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* Stats */}
+          <View style={[styles.previewCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <Text style={[styles.previewTitle, { color: colors.foreground }]}>Sua barbearia</Text>
+            <View style={styles.planStatsRow}>
+              <View style={styles.planStatItem}>
+                <Text style={[styles.planStatVal, { color: colors.gold }]}>{barbershopUsers.filter((u) => u.role === "client").length}</Text>
+                <Text style={[styles.planStatLabel, { color: colors.mutedForeground }]}>Clientes</Text>
+              </View>
+              <View style={styles.planStatItem}>
+                <Text style={[styles.planStatVal, { color: colors.gold }]}>{barbershopUsers.filter((u) => u.role === "employee").length}</Text>
+                <Text style={[styles.planStatLabel, { color: colors.mutedForeground }]}>Funcionários</Text>
+              </View>
+              <View style={styles.planStatItem}>
+                <Text style={[styles.planStatVal, { color: colors.gold }]}>{appointments.length}</Text>
+                <Text style={[styles.planStatLabel, { color: colors.mutedForeground }]}>Agendamentos</Text>
+              </View>
+            </View>
+          </View>
+        </ScrollView>
+      )}
+
       {/* ── SERVICE MODAL ── */}
       <Modal visible={serviceModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setServiceModal(false)}>
         <View style={[styles.modal, { backgroundColor: colors.background }]}>
@@ -477,6 +655,40 @@ export default function ManagementScreen() {
                 />
               </View>
             ))}
+
+            {/* Employee access section */}
+            <View style={[styles.accessCard, { backgroundColor: colors.card, borderColor: profForm.hasAccess ? colors.gold : colors.border }]}>
+              <TouchableOpacity style={styles.accessRow} onPress={() => { Haptics.selectionAsync(); setProfForm((p) => ({ ...p, hasAccess: !p.hasAccess })); }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.accessTitle, { color: colors.foreground }]}>Acesso ao sistema</Text>
+                  <Text style={[styles.accessHint, { color: colors.mutedForeground }]}>
+                    Permite que este profissional faça login como funcionário e veja sua própria agenda, comissão e atendimentos.
+                  </Text>
+                </View>
+                <View style={[styles.accessSwitch, { backgroundColor: profForm.hasAccess ? colors.gold : colors.secondary }]}>
+                  <View style={[styles.accessKnob, { backgroundColor: "#fff", marginLeft: profForm.hasAccess ? 22 : 2 }]} />
+                </View>
+              </TouchableOpacity>
+              {profForm.hasAccess && (
+                <View style={{ marginTop: 12 }}>
+                  <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>
+                    {editingProf && findProfUser(editingProf.id) ? "Nova senha (opcional)" : "Senha de acesso *"}
+                  </Text>
+                  <TextInput
+                    style={[styles.fieldInput, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.background }]}
+                    value={profForm.password}
+                    onChangeText={(v) => setProfForm((p) => ({ ...p, password: v }))}
+                    secureTextEntry
+                    autoCapitalize="none"
+                    placeholder={editingProf && findProfUser(editingProf.id) ? "Deixe em branco para manter a atual" : "Mínimo 6 caracteres"}
+                    placeholderTextColor={colors.mutedForeground}
+                  />
+                  <Text style={[styles.accessHint, { color: colors.mutedForeground, marginTop: 4 }]}>
+                    Login: email acima · Slug: {barbershop?.slug ?? "—"}
+                  </Text>
+                </View>
+              )}
+            </View>
           </KeyboardAwareScrollViewCompat>
         </View>
       </Modal>
@@ -648,4 +860,37 @@ const styles = StyleSheet.create({
   timeInput: { width: 60, borderWidth: 1.5, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 6, fontSize: 14, fontFamily: "Inter_600SemiBold", textAlign: "center" },
   timeSep: { fontSize: 12, fontFamily: "Inter_400Regular" },
   scheduleOff: { fontSize: 12, fontFamily: "Inter_400Regular", fontStyle: "italic" },
+  // employee access
+  accessCard: { borderRadius: 14, borderWidth: 1.5, padding: 14, marginTop: 10 },
+  accessRow: { flexDirection: "row", alignItems: "center", gap: 12 },
+  accessTitle: { fontSize: 14, fontFamily: "Inter_700Bold", marginBottom: 3 },
+  accessHint: { fontSize: 11, fontFamily: "Inter_400Regular", lineHeight: 15 },
+  accessSwitch: { width: 46, height: 26, borderRadius: 13, justifyContent: "center" },
+  accessKnob: { width: 22, height: 22, borderRadius: 11 },
+  // plan
+  planHeroCard: { borderRadius: 18, borderWidth: 1.5, padding: 18 },
+  planHeroTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
+  planBadge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8 },
+  planBadgeText: { fontSize: 10, fontFamily: "Inter_700Bold", color: "#0C0C0C", letterSpacing: 0.4 },
+  planShopName: { fontSize: 20, fontFamily: "Inter_700Bold" },
+  planShopSlug: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 2 },
+  planRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 },
+  planRowLabel: { fontSize: 13, fontFamily: "Inter_500Medium" },
+  planRowValue: { fontSize: 15, fontFamily: "Inter_700Bold" },
+  planProgressTrack: { height: 8, borderRadius: 4, overflow: "hidden", marginBottom: 8 },
+  planProgressFill: { height: "100%", borderRadius: 4 },
+  planHint: { fontSize: 12, fontFamily: "Inter_400Regular", lineHeight: 17, marginTop: 4 },
+  priceCard: { borderRadius: 18, borderWidth: 1.5, padding: 20, gap: 8 },
+  priceTitle: { fontSize: 15, fontFamily: "Inter_700Bold" },
+  priceRow: { flexDirection: "row", alignItems: "baseline", gap: 6, marginBottom: 8 },
+  priceValue: { fontSize: 32, fontFamily: "Inter_700Bold" },
+  priceUnit: { fontSize: 14, fontFamily: "Inter_400Regular" },
+  priceRowItem: { flexDirection: "row", alignItems: "center", gap: 8 },
+  priceFeat: { fontSize: 13, fontFamily: "Inter_500Medium" },
+  subBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 14, borderRadius: 14, marginTop: 10 },
+  subBtnText: { fontSize: 15, fontFamily: "Inter_700Bold", color: "#0C0C0C" },
+  planStatsRow: { flexDirection: "row", gap: 8, marginTop: 6 },
+  planStatItem: { flex: 1, alignItems: "center", gap: 2 },
+  planStatVal: { fontSize: 22, fontFamily: "Inter_700Bold" },
+  planStatLabel: { fontSize: 11, fontFamily: "Inter_400Regular" },
 });
