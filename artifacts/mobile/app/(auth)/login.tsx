@@ -4,6 +4,7 @@ import { router } from "expo-router";
 import React, { useState } from "react";
 import {
   Alert,
+  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -71,10 +72,11 @@ export default function LoginScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.logo}>
-          <View style={[styles.logoIcon, { backgroundColor: colors.gold }]}>
-            <Feather name="scissors" size={28} color="#0C0C0C" />
-          </View>
-          <Text style={[styles.logoText, { color: colors.foreground }]}>Marcaê</Text>
+          <Image
+            source={require("@/assets/images/logo.png")}
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
           <Text style={[styles.logoSub, { color: colors.mutedForeground }]}>
             Agenda e gestão para profissionais que marcam hora
           </Text>
@@ -189,8 +191,7 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: { flexGrow: 1, paddingHorizontal: 24, gap: 24 },
   logo: { alignItems: "center", gap: 8 },
-  logoIcon: { width: 70, height: 70, borderRadius: 20, alignItems: "center", justifyContent: "center", marginBottom: 4 },
-  logoText: { fontSize: 28, fontFamily: "Inter_700Bold", letterSpacing: -0.5 },
+  logoImage: { width: 220, height: 90, marginBottom: 4 },
   logoSub: { fontSize: 13, fontFamily: "Inter_400Regular", textAlign: "center" },
   form: { gap: 12 },
   fieldLabel: { fontSize: 11, fontFamily: "Inter_600SemiBold", marginBottom: 6, letterSpacing: 0.3, textTransform: "uppercase" },

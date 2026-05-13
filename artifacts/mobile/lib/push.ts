@@ -31,7 +31,7 @@ async function configureHandler(N: NotifModule): Promise<void> {
       name: "default",
       importance: N.AndroidImportance.HIGH,
       vibrationPattern: [0, 250, 250, 250],
-      lightColor: "#C9A96E",
+      lightColor: "#556B2F",
     });
   }
 }

@@ -17,11 +17,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
 
 const PRIMARY_PRESETS = [
-  "#C9A96E", "#D4AF37", "#E11D48", "#EC4899", "#A855F7", "#6366F1",
+  "#556B2F", "#C49A4A", "#A07A30", "#E11D48", "#A855F7", "#6366F1",
   "#0EA5E9", "#14B8A6", "#22C55E", "#F59E0B", "#EF4444", "#1F2937",
 ];
 const ACCENT_PRESETS = [
-  "#0C0C0C", "#1F1B16", "#2D1B2E", "#1E1B4B", "#0F172A", "#0C2616",
+  "#3A3328", "#1F1C16", "#2D1B2E", "#1E1B4B", "#0F172A", "#0C2616",
   "#7C2D12", "#3F0F0F", "#FFFFFF", "#F4F4F5", "#FEF3C7", "#FFE4E6",
 ];
 
@@ -33,8 +33,8 @@ export default function AdminSettingsScreen() {
   const { user, barbershop, updateBarbershop, openBillingPortal, logout, planStatus } = useAuth();
 
   const [name, setName] = useState(barbershop?.name ?? "");
-  const [primary, setPrimary] = useState(barbershop?.brandPrimary ?? "#C9A96E");
-  const [accent, setAccent] = useState(barbershop?.brandAccent ?? "#0C0C0C");
+  const [primary, setPrimary] = useState(barbershop?.brandPrimary ?? "#556B2F");
+  const [accent, setAccent] = useState(barbershop?.brandAccent ?? "#3A3328");
   const [busy, setBusy] = useState(false);
 
   if (!user || user.role !== "admin") {
@@ -48,7 +48,7 @@ export default function AdminSettingsScreen() {
 
   const save = async () => {
     if (!HEX_RE.test(primary) || !HEX_RE.test(accent)) {
-      Alert.alert("Cor inválida", "Use o formato hexadecimal #RRGGBB (ex: #C9A96E).");
+      Alert.alert("Cor inválida", "Use o formato hexadecimal #RRGGBB (ex: #556B2F).");
       return;
     }
     if (!name.trim()) {

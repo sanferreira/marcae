@@ -13,8 +13,8 @@ export const barbershopsTable = pgTable("barbershops", {
   subscriptionRenewsAt: timestamp("subscription_renews_at", { withTimezone: true }),
   stripeCustomerId: text("stripe_customer_id"),
   stripeSubscriptionId: text("stripe_subscription_id"),
-  brandPrimary: text("brand_primary").notNull().default("#C9A96E"),
-  brandAccent: text("brand_accent").notNull().default("#0C0C0C"),
+  brandPrimary: text("brand_primary").notNull().default("#556B2F"),
+  brandAccent: text("brand_accent").notNull().default("#3A3328"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

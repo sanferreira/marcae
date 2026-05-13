@@ -25,7 +25,7 @@ export function useColors() {
     ...palette,
     gold: brand.primary,
     primary: brand.primary,
-    accent: brand.primary,
+    accent: brand.accent,
     tint: brand.primary,
     radius: colors.radius,
   };

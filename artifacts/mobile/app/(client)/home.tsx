@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import {
   Alert,
   FlatList,
+  Image,
   Modal,
   Platform,
   ScrollView,
@@ -160,9 +161,11 @@ export default function HomeScreen() {
               O que vamos fazer hoje?
             </Text>
           </View>
-          <View style={[styles.logoMark, { backgroundColor: colors.gold }]}>
-            <Feather name="scissors" size={18} color="#0C0C0C" />
-          </View>
+          <Image
+            source={require("@/assets/images/logo.png")}
+            style={styles.logoMark}
+            resizeMode="contain"
+          />
         </View>
 
         <TouchableOpacity
@@ -456,11 +459,8 @@ const styles = StyleSheet.create({
   greeting: { fontSize: 14, fontFamily: "Inter_400Regular" },
   subtitle: { fontSize: 22, fontFamily: "Inter_700Bold", marginTop: 2 },
   logoMark: {
-    width: 44,
+    width: 100,
     height: 44,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
   },
   bookBanner: {
     flexDirection: "row",
