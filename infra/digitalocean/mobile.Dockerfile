@@ -18,11 +18,11 @@ ENV EXPO_PUBLIC_DOMAIN=$APP_DOMAIN
 ENV EXPO_PUBLIC_API_URL=$EXPO_PUBLIC_API_URL
 ENV NODE_ENV=production
 
-RUN pnpm --filter @workspace/mobile run build
+RUN pnpm --filter @workspace/mobile run build:web
 
-ENV PORT=3000
-ENV BASE_PATH=/
+FROM nginx:1.27-alpine
 
-EXPOSE 3000
+COPY infra/digitalocean/mobile.nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=0 /app/artifacts/mobile/dist-web /usr/share/nginx/html
 
-CMD ["node", "artifacts/mobile/server/serve.js"]
+EXPOSE 80

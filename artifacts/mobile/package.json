@@ -7,6 +7,7 @@
     "dev": "pnpm exec expo start --lan --port 8081",
     "dev:local": "pnpm exec expo start --localhost --port 8081",
     "build": "node scripts/build.js",
+    "build:web": "pnpm exec expo export --platform web --output-dir dist-web",
     "serve": "node server/serve.js",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },

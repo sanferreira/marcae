@@ -52,12 +52,8 @@ services:
         APP_DOMAIN: ${APP_DOMAIN}
         EXPO_PUBLIC_API_URL: https://${APP_DOMAIN}/api
     restart: unless-stopped
-    environment:
-      NODE_ENV: production
-      PORT: 3000
-      BASE_PATH: /
     expose:
-      - "3000"
+      - "80"
 
   landing:
     image: marcae-landing
