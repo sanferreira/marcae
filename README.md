@@ -33,9 +33,9 @@ Se quiser uma URL web local para retorno do Stripe, rode tambem `pnpm run landin
 2. Se for usar celular fisico, troque `localhost` pelo IP da sua maquina na mesma rede
 3. Rode `pnpm run mobile:dev`
 
-## Stripe fora do Replit
+## Strip
 
-Fora do Replit, o backend passa a aceitar as variaveis abaixo em `artifacts/api-server/.env`:
+o backend passa a aceitar as variaveis abaixo em `artifacts/api-server/.env`:
 
 - `STRIPE_SECRET_KEY`
 - `STRIPE_PUBLISHABLE_KEY`
