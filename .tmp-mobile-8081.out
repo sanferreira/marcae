@@ -9,3 +9,78 @@ React Compiler enabled
 Starting Metro Bundler
 Waiting on http://localhost:8081
 Logs for your project will appear below.
+Web node_modules\.pnpm\expo-router@6.0.23_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17_expo-c_4hhosb7qqyh46ydcxa4ejh5vjy\node_modules\expo-router\entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+Web node_modules\.pnpm\expo-router@6.0.23_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17_expo-c_4hhosb7qqyh46ydcxa4ejh5vjy\node_modules\expo-router\entry.js ▓▓▓▓▓▓▓▓▓▓▓▓░░░░ 75.6% ( 885/1018)
+Web Bundled 6059ms node_modules\.pnpm\expo-router@6.0.23_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17_expo-c_4hhosb7qqyh46ydcxa4ejh5vjy\node_modules\expo-router\entry.js (1517 modules)
+ LOG  [web] Logs will appear in the browser console
+Web node_modules\.pnpm\expo-router@6.0.23_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17_expo-c_4hhosb7qqyh46ydcxa4ejh5vjy\node_modules\expo-router\entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+Web Bundled 93ms node_modules\.pnpm\expo-router@6.0.23_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17_expo-c_4hhosb7qqyh46ydcxa4ejh5vjy\node_modules\expo-router\entry.js (1 module)
+ LOG  [web] Logs will appear in the browser console
+ ERROR  SyntaxError: D:\Projetos\Service-Provider\artifacts\mobile\app\(admin)\clients.tsx: Unexpected token, expected "," (307:27)
+
+  305 |             </Text>
+  306 |             {intakeFields.length > 0 ? (
+> 307 |               {intakeFields.map((field) => (
+      |                            ^
+  308 |                 <View key={field.key} style={[styles.fichaRow, { borderTopColor: colors.border }]}>
+  309 |                   <Text style={[styles.fichaLabel, { color: colors.mutedForeground }]}>{field.label}</Text>
+  310 |                   <Text style={[styles.fichaValue, { color: colors.foreground }]}>
+    at constructor (D:\Projetos\Service-Provider\node_modules\.pnpm\@babel+parser@7.29.0\node_modules\@babel\parser\lib\index.js:365:19)
+    at TypeScriptParserMixin.raise (D:\Projetos\Service-Provider\node_modules\.pnpm\@babel+parser@7.29.0\node_modules\@babel\parser\lib\index.js:6599:19)
+    at TypeScriptParserMixin.unexpected (D:\Projetos\Service-Provider\node_modules\.pnpm\@babel+parser@7.29.0\node_modules\@babel\parser\lib\index.js:6619:16)
+    at TypeScriptParserMixin.expect (D:\Projetos\Service-Provider\node_modules\.pnpm\@babel+parser@7.29.0\node_modules\@babel\parser\lib\index.js:6899:12)
+    at TypeScriptParserMixin.parseObjectLike (D:\Projetos\Service-Provider\node_modules\.pnpm\@babel+parser@7.29.0\node_modules\@babel\parser\lib\index.js:11822:14)
+    at TypeScriptParserMixin.parseExprAtom (D:\Projetos\Service-Provider\node_modules\.pnpm\@babel+parser@7.29.0\node_modules\@babel\parser\lib\index.js:11339:23)
+    at TypeScriptParserMixin.parseExprAtom (D:\Projetos\Service-Provider\node_modules\.pnpm\@babel+parser@7.29.0\node_modules\@babel\parser\lib\index.js:4764:20)
+    at TypeScriptParserMixin.parseExprSubscripts (D:\Projetos\Service-Provider\node_modules\.pnpm\@babel+parser@7.29.0\node_modules\@babel\parser\lib\index.js:11081:23)
+    at TypeScriptParserMixin.parseUpdate (D:\Projetos\Service-Provider\node_modules\.pnpm\@babel+parser@7.29.0\node_modules\@babel\parser\lib\index.js:11066:21)
+    at TypeScriptParserMixin.parseMaybeUnary (D:\Projetos\Service-Provider\node_modules\.pnpm\@babel+parser@7.29.0\node_modules\@babel\parser\lib\index.js:11046:23)
+    at TypeScriptParserMixin.parseMaybeUnary (D:\Projetos\Service-Provider\node_modules\.pnpm\@babel+parser@7.29.0\node_modules\@babel\parser\lib\index.js:9837:18)
+    at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (D:\Projetos\Service-Provider\node_modules\.pnpm\@babel+parser@7.29.0\node_modules\@babel\parser\lib\index.js:10899:61)
+    at TypeScriptParserMixin.parseExprOps (D:\Projetos\Service-Provider\node_modules\.pnpm\@babel+parser@7.29.0\node_modules\@babel\parser\lib\index.js:10904:23)
+    at TypeScriptParserMixin.parseMaybeConditional (D:\Projetos\Service-Provider\node_modules\.pnpm\@babel+parser@7.29.0\node_modules\@babel\parser\lib\index.js:10881:23)
+    at TypeScriptParserMixin.parseMaybeAssign (D:\Projetos\Service-Provider\node_modules\.pnpm\@babel+parser@7.29.0\node_modules\@babel\parser\lib\index.js:10831:21)
+    at TypeScriptParserMixin.parseMaybeAssign (D:\Projetos\Service-Provider\node_modules\.pnpm\@babel+parser@7.29.0\node_modules\@babel\parser\lib\index.js:9786:20)
+    at D:\Projetos\Service-Provider\node_modules\.pnpm\@babel+parser@7.29.0\node_modules\@babel\parser\lib\index.js:10800:39
+    at TypeScriptParserMixin.allowInAnd (D:\Projetos\Service-Provider\node_modules\.pnpm\@babel+parser@7.29.0\node_modules\@babel\parser\lib\index.js:12426:12)
+    at TypeScriptParserMixin.parseMaybeAssignAllowIn (D:\Projetos\Service-Provider\node_modules\.pnpm\@babel+parser@7.29.0\node_modules\@babel\parser\lib\index.js:10800:17)
+    at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (D:\Projetos\Service-Provider\node_modules\.pnpm\@babel+parser@7.29.0\node_modules\@babel\parser\lib\index.js:12493:17)
+    at TypeScriptParserMixin.parseParenAndDistinguishExpression (D:\Projetos\Service-Provider\node_modules\.pnpm\@babel+parser@7.29.0\node_modules\@babel\parser\lib\index.js:11675:28)
+    at TypeScriptParserMixin.parseExprAtom (D:\Projetos\Service-Provider\node_modules\.pnpm\@babel+parser@7.29.0\node_modules\@babel\parser\lib\index.js:11331:23)
+    at TypeScriptParserMixin.parseExprAtom (D:\Projetos\Service-Provider\node_modules\.pnpm\@babel+parser@7.29.0\node_modules\@babel\parser\lib\index.js:4764:20)
+    at TypeScriptParserMixin.parseExprSubscripts (D:\Projetos\Service-Provider\node_modules\.pnpm\@babel+parser@7.29.0\node_modules\@babel\parser\lib\index.js:11081:23)
+    at TypeScriptParserMixin.parseUpdate (D:\Projetos\Service-Provider\node_modules\.pnpm\@babel+parser@7.29.0\node_modules\@babel\parser\lib\index.js:11066:21)
+    at TypeScriptParserMixin.parseMaybeUnary (D:\Projetos\Service-Provider\node_modules\.pnpm\@babel+parser@7.29.0\node_modules\@babel\parser\lib\index.js:11046:23)
+    at TypeScriptParserMixin.parseMaybeUnary (D:\Projetos\Service-Provider\node_modules\.pnpm\@babel+parser@7.29.0\node_modules\@babel\parser\lib\index.js:9837:18)
+    at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (D:\Projetos\Service-Provider\node_modules\.pnpm\@babel+parser@7.29.0\node_modules\@babel\parser\lib\index.js:10899:61)
+    at TypeScriptParserMixin.parseExprOps (D:\Projetos\Service-Provider\node_modules\.pnpm\@babel+parser@7.29.0\node_modules\@babel\parser\lib\index.js:10904:23)
+    at TypeScriptParserMixin.parseMaybeConditional (D:\Projetos\Service-Provider\node_modules\.pnpm\@babel+parser@7.29.0\node_modules\@babel\parser\lib\index.js:10881:23)
+    at TypeScriptParserMixin.parseMaybeAssign (D:\Projetos\Service-Provider\node_modules\.pnpm\@babel+parser@7.29.0\node_modules\@babel\parser\lib\index.js:10831:21)
+    at TypeScriptParserMixin.parseMaybeAssign (D:\Projetos\Service-Provider\node_modules\.pnpm\@babel+parser@7.29.0\node_modules\@babel\parser\lib\index.js:9786:20)
+    at D:\Projetos\Service-Provider\node_modules\.pnpm\@babel+parser@7.29.0\node_modules\@babel\parser\lib\index.js:10800:39
+    at TypeScriptParserMixin.allowInAnd (D:\Projetos\Service-Provider\node_modules\.pnpm\@babel+parser@7.29.0\node_modules\@babel\parser\lib\index.js:12426:12)
+    at TypeScriptParserMixin.parseMaybeAssignAllowIn (D:\Projetos\Service-Provider\node_modules\.pnpm\@babel+parser@7.29.0\node_modules\@babel\parser\lib\index.js:10800:17)
+    at TypeScriptParserMixin.parseConditional (D:\Projetos\Service-Provider\node_modules\.pnpm\@babel+parser@7.29.0\node_modules\@babel\parser\lib\index.js:10891:30)
+    at TypeScriptParserMixin.parseConditional (D:\Projetos\Service-Provider\node_modules\.pnpm\@babel+parser@7.29.0\node_modules\@babel\parser\lib\index.js:9603:18)
+    at TypeScriptParserMixin.parseMaybeConditional (D:\Projetos\Service-Provider\node_modules\.pnpm\@babel+parser@7.29.0\node_modules\@babel\parser\lib\index.js:10885:17)
+    at TypeScriptParserMixin.parseMaybeAssign (D:\Projetos\Service-Provider\node_modules\.pnpm\@babel+parser@7.29.0\node_modules\@babel\parser\lib\index.js:10831:21)
+    at TypeScriptParserMixin.parseMaybeAssign (D:\Projetos\Service-Provider\node_modules\.pnpm\@babel+parser@7.29.0\node_modules\@babel\parser\lib\index.js:9786:20)
+    at TypeScriptParserMixin.parseExpressionBase (D:\Projetos\Service-Provider\node_modules\.pnpm\@babel+parser@7.29.0\node_modules\@babel\parser\lib\index.js:10784:23)
+    at D:\Projetos\Service-Provider\node_modules\.pnpm\@babel+parser@7.29.0\node_modules\@babel\parser\lib\index.js:10780:39
+    at TypeScriptParserMixin.allowInAnd (D:\Projetos\Service-Provider\node_modules\.pnpm\@babel+parser@7.29.0\node_modules\@babel\parser\lib\index.js:12426:12)
+    at TypeScriptParserMixin.parseExpression (D:\Projetos\Service-Provider\node_modules\.pnpm\@babel+parser@7.29.0\node_modules\@babel\parser\lib\index.js:10780:17)
+    at TypeScriptParserMixin.jsxParseExpressionContainer (D:\Projetos\Service-Provider\node_modules\.pnpm\@babel+parser@7.29.0\node_modules\@babel\parser\lib\index.js:4632:31)
+    at TypeScriptParserMixin.jsxParseElementAt (D:\Projetos\Service-Provider\node_modules\.pnpm\@babel+parser@7.29.0\node_modules\@babel\parser\lib\index.js:4711:36)
+    at TypeScriptParserMixin.jsxParseElementAt (D:\Projetos\Service-Provider\node_modules\.pnpm\@babel+parser@7.29.0\node_modules\@babel\parser\lib\index.js:4698:32)
+    at TypeScriptParserMixin.jsxParseElementAt (D:\Projetos\Service-Provider\node_modules\.pnpm\@babel+parser@7.29.0\node_modules\@babel\parser\lib\index.js:4698:32)
+    at TypeScriptParserMixin.jsxParseElement (D:\Projetos\Service-Provider\node_modules\.pnpm\@babel+parser@7.29.0\node_modules\@babel\parser\lib\index.js:4749:17)
+    at TypeScriptParserMixin.parseExprAtom (D:\Projetos\Service-Provider\node_modules\.pnpm\@babel+parser@7.29.0\node_modules\@babel\parser\lib\index.js:4759:19)
+Web node_modules\.pnpm\expo-router@6.0.23_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17_expo-c_4hhosb7qqyh46ydcxa4ejh5vjy\node_modules\expo-router\entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+Web Bundled 96ms node_modules\.pnpm\expo-router@6.0.23_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17_expo-c_4hhosb7qqyh46ydcxa4ejh5vjy\node_modules\expo-router\entry.js (1 module)
+ LOG  [web] Logs will appear in the browser console
+Web node_modules\.pnpm\expo-router@6.0.23_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17_expo-c_4hhosb7qqyh46ydcxa4ejh5vjy\node_modules\expo-router\entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+Web Bundled 94ms node_modules\.pnpm\expo-router@6.0.23_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17_expo-c_4hhosb7qqyh46ydcxa4ejh5vjy\node_modules\expo-router\entry.js (1 module)
+ LOG  [web] Logs will appear in the browser console
+Web node_modules\.pnpm\expo-router@6.0.23_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17_expo-c_4hhosb7qqyh46ydcxa4ejh5vjy\node_modules\expo-router\entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+Web Bundled 82ms node_modules\.pnpm\expo-router@6.0.23_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17_expo-c_4hhosb7qqyh46ydcxa4ejh5vjy\node_modules\expo-router\entry.js (1 module)
+ LOG  [web] Logs will appear in the browser console

@@ -1,0 +1,15 @@
+[Unit]
+Description=Marcae API
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/marcae
+EnvironmentFile=/opt/marcae/artifacts/api-server/.env
+ExecStart=/usr/bin/node --enable-source-maps artifacts/api-server/dist/index.mjs
+Restart=always
+RestartSec=5
+User=root
+
+[Install]
+WantedBy=multi-user.target
