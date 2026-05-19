@@ -3,14 +3,14 @@ import { barbershopsTable } from "./barbershops";
 import { clientsTable } from "./clients";
 
 export const loyaltySettingsTable = pgTable("loyalty_settings", {
-  barbershopId: uuid("barbershop_id").primaryKey().references(() => barbershopsTable.id, { onDelete: "cascade" }),
+  barbershopId: uuid("establishment_id").primaryKey().references(() => barbershopsTable.id, { onDelete: "cascade" }),
   requiredPoints: integer("required_points").notNull().default(10),
-  benefitDescription: text("benefit_description").notNull().default("Corte gratuito"),
+  benefitDescription: text("benefit_description").notNull().default("Atendimento gratuito"),
 });
 
 export const loyaltyMovementsTable = pgTable("loyalty_movements", {
   id: uuid("id").primaryKey().defaultRandom(),
-  barbershopId: uuid("barbershop_id").notNull().references(() => barbershopsTable.id, { onDelete: "cascade" }),
+  barbershopId: uuid("establishment_id").notNull().references(() => barbershopsTable.id, { onDelete: "cascade" }),
   clientId: uuid("client_id").notNull().references(() => clientsTable.id, { onDelete: "cascade" }),
   date: date("date").notNull(),
   points: integer("points").notNull(),

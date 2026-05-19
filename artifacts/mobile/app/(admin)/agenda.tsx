@@ -13,8 +13,10 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppointmentCard } from "@/components/AppointmentCard";
+import { PaginationBar } from "@/components/PaginationBar";
 import { useData } from "@/contexts/DataContext";
 import { useColors } from "@/hooks/useColors";
+import { usePagination } from "@/hooks/usePagination";
 
 const DAYS = Array.from({ length: 14 }, (_, i) => {
   const d = new Date();
@@ -22,15 +24,27 @@ const DAYS = Array.from({ length: 14 }, (_, i) => {
   return d;
 });
 
+const PAY_METHODS = ["PIX", "Dinheiro", "Cartao de Credito", "Cartao de Debito", "Pacote"];
+type StatusFilter = "all" | "pending" | "confirmed" | "completed" | "cancelled";
+
+const STATUS_FILTERS: Array<{ key: StatusFilter; label: string }> = [
+  { key: "all", label: "Todos" },
+  { key: "pending", label: "Pendentes" },
+  { key: "confirmed", label: "Confirmados" },
+  { key: "completed", label: "Concluidos" },
+  { key: "cancelled", label: "Cancelados" },
+];
+
 export default function AgendaScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { appointments, updateAppointmentStatus, cancelAppointment } = useData();
 
-  const topPad = Platform.OS === "web" ? 67 : insets.top;
+  const topPad = insets.top;
   const botPad = Platform.OS === "web" ? 34 : insets.bottom;
 
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const dateStr = selectedDate.toISOString().split("T")[0];
   const today = new Date().toISOString().split("T")[0];
 
@@ -41,14 +55,36 @@ export default function AgendaScreen() {
   const pendingCount = dayApts.filter(
     (a) => a.status === "confirmed" || a.status === "pending"
   ).length;
+  const filteredApts = statusFilter === "all"
+    ? dayApts
+    : dayApts.filter((appointment) => appointment.status === statusFilter);
+  const appointmentsPage = usePagination(filteredApts, 10);
+
+  const normalizePayment = (value: string | null) => {
+    const normalized = value?.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") ?? "";
+    if (!normalized) return null;
+    if (normalized.includes("pix")) return "PIX";
+    if (normalized.includes("pacote")) return "Pacote";
+    if (normalized.includes("dinheiro")) return "Dinheiro";
+    if (normalized.includes("debito")) return "Cartao de Debito";
+    if (normalized.includes("credito") || normalized.includes("cartao")) return "Cartao de Credito";
+    return null;
+  };
 
   const handleComplete = (id: string) => {
     Alert.alert("Concluir atendimento", "Forma de pagamento:", [
       { text: "Cancelar", style: "cancel" },
-      { text: "PIX", onPress: () => updateAppointmentStatus(id, "completed", "PIX") },
-      { text: "Dinheiro", onPress: () => updateAppointmentStatus(id, "completed", "Dinheiro") },
-      { text: "Cartão de Crédito", onPress: () => updateAppointmentStatus(id, "completed", "Cartão de Crédito") },
-      { text: "Cartão de Débito", onPress: () => updateAppointmentStatus(id, "completed", "Cartão de Débito") },
+      ...PAY_METHODS.map((method) => ({
+        text: method,
+        onPress: () => { void updateAppointmentStatus(id, "completed", method); },
+      })),
+    ]);
+  };
+
+  const handleCancel = (id: string) => {
+    Alert.alert("Cancelar", "Deseja cancelar?", [
+      { text: "Nao", style: "cancel" },
+      { text: "Sim", style: "destructive", onPress: () => { void cancelAppointment(id); } },
     ]);
   };
 
@@ -68,7 +104,7 @@ export default function AgendaScreen() {
           <Text style={[styles.title, { color: colors.foreground }]}>Agenda</Text>
           {pendingCount > 0 && (
             <View style={[styles.badge, { backgroundColor: colors.gold }]}>
-              <Text style={styles.badgeText}>{pendingCount}</Text>
+              <Text style={[styles.badgeText, { color: colors.goldForeground }]}>{pendingCount}</Text>
             </View>
           )}
         </View>
@@ -88,12 +124,15 @@ export default function AgendaScreen() {
                       borderColor: isToday && !isSelected ? colors.gold : isSelected ? colors.gold : colors.border,
                     },
                   ]}
-                  onPress={() => setSelectedDate(d)}
+                  onPress={() => {
+                    setSelectedDate(d);
+                    appointmentsPage.setPage(1);
+                  }}
                 >
                   <Text
                     style={[
                       styles.dateChipDay,
-                      { color: isSelected ? "#0C0C0C" : isToday ? colors.gold : colors.mutedForeground },
+                      { color: isSelected ? colors.goldForeground : isToday ? colors.gold : colors.mutedForeground },
                     ]}
                   >
                     {d.toLocaleDateString("pt-BR", { weekday: "short" }).replace(".", "").slice(0, 3).toUpperCase()}
@@ -101,14 +140,35 @@ export default function AgendaScreen() {
                   <Text
                     style={[
                       styles.dateChipNum,
-                      { color: isSelected ? "#0C0C0C" : colors.foreground },
+                      { color: isSelected ? colors.goldForeground : colors.foreground },
                     ]}
                   >
                     {d.getDate()}
                   </Text>
                   {dayApts.length > 0 && ds === dateStr && (
-                    <View style={[styles.dot, { backgroundColor: isSelected ? "#0C0C0C" : colors.gold }]} />
+                    <View style={[styles.dot, { backgroundColor: isSelected ? colors.goldForeground : colors.gold }]} />
                   )}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </ScrollView>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <View style={styles.filterRow}>
+            {STATUS_FILTERS.map((item) => {
+              const selected = statusFilter === item.key;
+              return (
+                <TouchableOpacity
+                  key={item.key}
+                  style={[styles.filterBtn, { backgroundColor: selected ? colors.gold : colors.card, borderColor: selected ? colors.gold : colors.border }]}
+                  onPress={() => {
+                    setStatusFilter(item.key);
+                    appointmentsPage.setPage(1);
+                  }}
+                >
+                  <Text style={[styles.filterText, { color: selected ? colors.goldForeground : colors.mutedForeground }]}>
+                    {item.label}
+                  </Text>
                 </TouchableOpacity>
               );
             })}
@@ -117,7 +177,7 @@ export default function AgendaScreen() {
       </View>
 
       <FlatList
-        data={dayApts}
+        data={appointmentsPage.data}
         keyExtractor={(item) => item.id}
         contentContainerStyle={[
           styles.list,
@@ -135,11 +195,7 @@ export default function AgendaScreen() {
             }
             onCancel={
               item.status === "confirmed" || item.status === "pending"
-                ? () =>
-                    Alert.alert("Cancelar", "Deseja cancelar?", [
-                      { text: "Não", style: "cancel" },
-                      { text: "Sim", style: "destructive", onPress: () => cancelAppointment(item.id) },
-                    ])
+                ? () => handleCancel(item.id)
                 : undefined
             }
           />
@@ -154,6 +210,15 @@ export default function AgendaScreen() {
               Nenhum agendamento para este dia
             </Text>
           </View>
+        }
+        ListFooterComponent={
+          <PaginationBar
+            page={appointmentsPage.page}
+            totalPages={appointmentsPage.totalPages}
+            totalItems={appointmentsPage.totalItems}
+            pageSize={appointmentsPage.pageSize}
+            onPageChange={appointmentsPage.setPage}
+          />
         }
       />
     </View>
@@ -183,6 +248,9 @@ const styles = StyleSheet.create({
   },
   badgeText: { fontSize: 12, fontFamily: "Inter_700Bold", color: "#0C0C0C" },
   dateRow: { flexDirection: "row", gap: 8 },
+  filterRow: { flexDirection: "row", gap: 8, paddingRight: 20 },
+  filterBtn: { minHeight: 34, borderRadius: 999, borderWidth: 1, paddingHorizontal: 12, alignItems: "center", justifyContent: "center" },
+  filterText: { fontSize: 12, fontFamily: "Inter_700Bold" },
   dateChip: {
     width: 54,
     paddingVertical: 10,

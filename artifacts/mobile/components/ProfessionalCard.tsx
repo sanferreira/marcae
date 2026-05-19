@@ -3,6 +3,7 @@ import * as Haptics from "expo-haptics";
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
+import { AppAvatar } from "@/components/AppAvatar";
 import { Professional } from "@/contexts/DataContext";
 import { useColors } from "@/hooks/useColors";
 
@@ -34,16 +35,14 @@ export function ProfessionalCard({ professional, selected, onPress }: Props) {
       onPress={handlePress}
       activeOpacity={0.75}
     >
-      <View
-        style={[
-          styles.avatar,
-          { backgroundColor: selected ? colors.gold : colors.secondary },
-        ]}
-      >
-        <Text style={[styles.initials, { color: selected ? "#0C0C0C" : colors.mutedForeground }]}>
-          {initials}
-        </Text>
-      </View>
+      <AppAvatar
+        imageUri={professional.avatarImage}
+        fallback={initials}
+        size={48}
+        backgroundColor={selected ? colors.gold : colors.secondary}
+        textColor={selected ? colors.primaryForeground : colors.mutedForeground}
+        fontSize={16}
+      />
       <View style={styles.info}>
         <Text style={[styles.name, { color: colors.foreground }]}>{professional.name}</Text>
         <Text style={[styles.specialty, { color: colors.mutedForeground }]}>
@@ -108,17 +107,6 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     marginBottom: 10,
     gap: 12,
-  },
-  avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  initials: {
-    fontSize: 16,
-    fontFamily: "Inter_700Bold",
   },
   info: {
     flex: 1,

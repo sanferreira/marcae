@@ -1,6 +1,6 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { eq, desc } from "drizzle-orm";
-import { db, cashEntriesTable } from "@workspace/db";
+import { categoriesTable, db, cashEntriesTable } from "@workspace/db";
 import { requireAuth, requireRole } from "../lib/auth";
 import { CashEntryCreate } from "../lib/schemas";
 import { serializeCashEntry } from "../lib/serializers";
@@ -20,12 +20,19 @@ router.post("/cash-entries", requireRole("admin"), async (req: Request, res: Res
   const parsed = CashEntryCreate.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Dados inválidos" }); return; }
   const shop = req.auth!.barbershop.id;
+  const category = parsed.data.category.trim().replace(/\s+/g, " ") || "Outro";
+  await db.insert(categoriesTable).values({
+    barbershopId: shop,
+    type: parsed.data.type,
+    name: category,
+  }).onConflictDoNothing();
+
   const [row] = await db.insert(cashEntriesTable).values({
     barbershopId: shop,
     description: parsed.data.description,
     amount: String(parsed.data.amount),
     type: parsed.data.type,
-    category: parsed.data.category,
+    category,
     paymentMethod: parsed.data.paymentMethod,
     date: parsed.data.date,
     professionalId: parsed.data.professionalId ?? null,

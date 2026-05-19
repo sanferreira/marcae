@@ -1,0 +1,58 @@
+
+> @workspace/api-server@0.0.0 dev D:\Projetos\Service-Provider\artifacts\api-server
+> node --env-file=.env ./build.mjs && node --env-file=.env --enable-source-maps ./dist/index.mjs
+
+[14:37:27.370] [32mINFO[39m (8352): [36mServer listening[39m
+    [35mport[39m: 8082
+{ autoExpandLists: undefined, stripeApiVersion: undefined } StripeSync initialized
+[14:37:27.617] [32mINFO[39m (8352): [36musing STRIPE_WEBHOOK_SECRET from environment[39m
+[14:37:30.215] [32mINFO[39m (8352): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 1,
+      "method": "GET",
+      "url": "/health"
+    }
+    [35mres[39m: {
+      "statusCode": 404
+    }
+    [35mresponseTime[39m: 6
+[14:37:43.692] [32mINFO[39m (8352): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 2,
+      "method": "GET",
+      "url": "/health"
+    }
+    [35mres[39m: {
+      "statusCode": 404
+    }
+    [35mresponseTime[39m: 1
+[14:37:49.437] [32mINFO[39m (8352): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 3,
+      "method": "GET",
+      "url": "/api/auth/me"
+    }
+    [35mres[39m: {
+      "statusCode": 401
+    }
+    [35mresponseTime[39m: 2
+[14:39:22.629] [32mINFO[39m (8352): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 4,
+      "method": "GET",
+      "url": "/api/auth/me"
+    }
+    [35mres[39m: {
+      "statusCode": 401
+    }
+    [35mresponseTime[39m: 1
+[14:48:41.131] [32mINFO[39m (8352): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 5,
+      "method": "OPTIONS",
+      "url": "/api/services"
+    }
+    [35mres[39m: {
+      "statusCode": 204
+    }
+    [35mresponseTime[39m: 1

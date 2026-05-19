@@ -27,6 +27,7 @@ router.post("/services", requireRole("admin"), async (req: Request, res: Respons
     name: parsed.data.name,
     price: String(parsed.data.price),
     duration: parsed.data.duration,
+    loyaltyPoints: parsed.data.loyaltyPoints,
     description: parsed.data.description,
     category: parsed.data.category,
     isActive: parsed.data.isActive,
@@ -46,6 +47,7 @@ router.patch("/services/:id", requireRole("admin"), async (req: Request, res: Re
   if (parsed.data.name !== undefined) updates.name = parsed.data.name;
   if (parsed.data.price !== undefined) updates.price = String(parsed.data.price);
   if (parsed.data.duration !== undefined) updates.duration = parsed.data.duration;
+  if (parsed.data.loyaltyPoints !== undefined) updates.loyaltyPoints = parsed.data.loyaltyPoints;
   if (parsed.data.description !== undefined) updates.description = parsed.data.description;
   if (parsed.data.category !== undefined) updates.category = parsed.data.category;
   if (parsed.data.isActive !== undefined) updates.isActive = parsed.data.isActive;
@@ -54,6 +56,19 @@ router.patch("/services/:id", requireRole("admin"), async (req: Request, res: Re
     .returning();
   if (!row) { res.status(404).json({ error: "Serviço não encontrado." }); return; }
   res.json(serializeService(row));
+});
+
+router.delete("/services/:id", requireRole("admin"), async (req: Request, res: Response): Promise<void> => {
+  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const shop = req.auth!.barbershop.id;
+  const [row] = await db.delete(servicesTable)
+    .where(and(eq(servicesTable.id, id), eq(servicesTable.barbershopId, shop)))
+    .returning();
+  if (!row) {
+    res.status(404).json({ error: "Servico nao encontrado." });
+    return;
+  }
+  res.status(204).send();
 });
 
 export default router;

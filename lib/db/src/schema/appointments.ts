@@ -5,7 +5,7 @@ import { professionalsTable } from "./professionals";
 
 export const appointmentsTable = pgTable("appointments", {
   id: uuid("id").primaryKey().defaultRandom(),
-  barbershopId: uuid("barbershop_id").notNull().references(() => barbershopsTable.id, { onDelete: "cascade" }),
+  barbershopId: uuid("establishment_id").notNull().references(() => barbershopsTable.id, { onDelete: "cascade" }),
   clientId: uuid("client_id").notNull().references(() => clientsTable.id, { onDelete: "cascade" }),
   clientName: text("client_name").notNull(),
   professionalId: uuid("professional_id").notNull().references(() => professionalsTable.id, { onDelete: "cascade" }),
@@ -17,6 +17,10 @@ export const appointmentsTable = pgTable("appointments", {
   status: text("status").notNull().default("pending"),
   paymentMethod: text("payment_method"),
   isFreeByLoyalty: boolean("is_free_by_loyalty").notNull().default(false),
+  clientNotes: text("client_notes").notNull().default(""),
+  professionalNotes: text("professional_notes").notNull().default(""),
+  reminder24hSentAt: timestamp("reminder_24h_sent_at", { withTimezone: true }),
+  reminder2hSentAt: timestamp("reminder_2h_sent_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

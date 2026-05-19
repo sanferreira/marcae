@@ -13,12 +13,15 @@ interface Props {
   showAdmin?: boolean;
 }
 
-const CATEGORY_ICONS: Record<string, "scissors" | "user" | "star" | "package" | "zap"> = {
+const CATEGORY_ICONS: Record<string, React.ComponentProps<typeof Feather>["name"]> = {
   Cabelo: "scissors",
   Barba: "user",
   Combo: "star",
   Estética: "zap",
   Tratamento: "package",
+  Tatuagem: "edit-3",
+  Piercing: "circle",
+  Consulta: "clipboard",
 };
 
 export function ServiceCard({ service, selected, onPress, showAdmin }: Props) {
@@ -29,7 +32,7 @@ export function ServiceCard({ service, selected, onPress, showAdmin }: Props) {
     onPress();
   };
 
-  const icon = CATEGORY_ICONS[service.category] ?? "scissors";
+  const icon = CATEGORY_ICONS[service.category] ?? "briefcase";
 
   return (
     <TouchableOpacity
@@ -49,7 +52,7 @@ export function ServiceCard({ service, selected, onPress, showAdmin }: Props) {
           { backgroundColor: selected ? colors.gold : colors.secondary },
         ]}
       >
-        <Feather name={icon} size={18} color={selected ? "#0C0C0C" : colors.mutedForeground} />
+        <Feather name={icon} size={18} color={selected ? colors.primaryForeground : colors.mutedForeground} />
       </View>
       <View style={styles.content}>
         <Text style={[styles.name, { color: colors.foreground }]}>{service.name}</Text>

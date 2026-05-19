@@ -5,7 +5,7 @@ import { Icon, Label, NativeTabs } from "expo-router/unstable-native-tabs";
 import { SymbolView } from "expo-symbols";
 import { Feather } from "@expo/vector-icons";
 import React from "react";
-import { ActivityIndicator, Platform, StyleSheet, Text, TouchableOpacity, View, useColorScheme } from "react-native";
+import { ActivityIndicator, Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
@@ -31,7 +31,6 @@ function NativeTabLayout() {
 
 function ClassicTabLayout() {
   const colors = useColors();
-  const isDark = useColorScheme() === "dark";
   const isIOS = Platform.OS === "ios";
   const isWeb = Platform.OS === "web";
 
@@ -51,7 +50,7 @@ function ClassicTabLayout() {
         },
         tabBarBackground: () =>
           isIOS ? (
-            <BlurView intensity={100} tint={isDark ? "dark" : "light"} style={StyleSheet.absoluteFill} />
+            <BlurView intensity={100} tint="light" style={StyleSheet.absoluteFill} />
           ) : isWeb ? (
             <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.background }]} />
           ) : null,
@@ -121,7 +120,7 @@ export default function EmployeeTabLayout() {
   }
   if (!user) return <Redirect href={"/(auth)/login" as any} />;
   if (user.role !== "employee") return <Redirect href={"/" as any} />;
-  if (planStatus.plan === "expired") return <EmployeeExpiredGate />;
+  if (!planStatus.isActive) return <EmployeeExpiredGate />;
   if (isLiquidGlassAvailable()) return <NativeTabLayout />;
   return <ClassicTabLayout />;
 }

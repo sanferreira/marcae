@@ -3,10 +3,11 @@ import { barbershopsTable } from "./barbershops";
 
 export const servicesTable = pgTable("services", {
   id: uuid("id").primaryKey().defaultRandom(),
-  barbershopId: uuid("barbershop_id").notNull().references(() => barbershopsTable.id, { onDelete: "cascade" }),
+  barbershopId: uuid("establishment_id").notNull().references(() => barbershopsTable.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   price: numeric("price", { precision: 10, scale: 2 }).notNull(),
   duration: integer("duration").notNull(),
+  loyaltyPoints: integer("loyalty_points").notNull().default(1),
   description: text("description").notNull().default(""),
   category: text("category").notNull().default("Geral"),
   isActive: boolean("is_active").notNull().default(true),

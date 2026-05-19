@@ -19,6 +19,26 @@ import {
 import Logo from "../components/Logo";
 import PhoneMockup from "../components/PhoneMockup";
 
+const APP_WEB_BASE_URL = (() => {
+  const envUrl = import.meta.env.VITE_APP_WEB_URL?.trim();
+  if (envUrl) return envUrl.replace(/\/+$/, "");
+
+  if (typeof window !== "undefined" && window.location.hostname === "localhost") {
+    return "http://localhost:8081";
+  }
+
+  return "";
+})();
+
+function appHref(path: string): string {
+  return APP_WEB_BASE_URL ? `${APP_WEB_BASE_URL}${path}` : path;
+}
+
+const LOGIN_HREF = appHref("/login");
+const REGISTER_SHOP_HREF = appHref("/register-shop");
+const LEGAL_HREF = appHref("/legal");
+const SUPPORT_HREF = import.meta.env.VITE_SUPPORT_URL?.trim() || "#faq";
+
 const NAV = [
   { label: "Recursos", href: "#recursos" },
   { label: "Ramos", href: "#ramos" },
@@ -48,7 +68,7 @@ const NICHES = [
   },
   {
     title: "Estética",
-    body: "Anamnese, pacotes auto-agendados e ficha por sessão.",
+    body: "Anamnese, pacotes vendidos pela equipe e ficha por sessão.",
     rows: [
       { k: "Fototipo", v: "III · Fitzpatrick" },
       { k: "Pacote", v: "axilas · 6/10" },
@@ -57,7 +77,7 @@ const NICHES = [
   },
   {
     title: "Cílios",
-    body: "Estilo, mapping, manutenção quinzenal e antes/depois.",
+    body: "Estilo, mapping, manutenção quinzenal e observações por atendimento.",
     rows: [
       { k: "Estilo", v: "volume russo D" },
       { k: "Manutenção", v: "a cada 18 dias" },
@@ -66,7 +86,7 @@ const NICHES = [
   },
   {
     title: "Sobrancelha",
-    body: "Design, henna, formato e ficha com fotos do antes.",
+    body: "Design, henna, formato e ficha personalizada do cliente.",
     rows: [
       { k: "Design", v: "fio a fio" },
       { k: "Henna", v: "castanho médio" },
@@ -108,16 +128,16 @@ const MARQUEE_ITEMS = [
   "Gestão financeira",
   "Cadastro de clientes",
   "Comissões da equipe",
-  "Notificações automáticas",
+  "Notificações de agenda",
   "Catálogo de serviços",
   "Relatórios em tempo real",
 ];
 
 const STATS = [
-  { value: "+340", label: "profissionais usam todo dia" },
-  { value: "98%", label: "agendamentos sem ligação" },
-  { value: "2,4x", label: "mais retenção de clientes" },
-  { value: "7 dias", label: "grátis, sem cartão" },
+  { value: "3", label: "experiências: cliente, funcionário e admin" },
+  { value: "20", label: "profissionais no plano Super" },
+  { value: "48h", label: "regra para reagendar ou cancelar" },
+  { value: "7 dias", label: "trial liberado" },
 ];
 
 const FEATURES = [
@@ -129,7 +149,7 @@ const FEATURES = [
   {
     icon: Star,
     title: "Fidelidade que volta sempre",
-    body: "Pontos a cada atendimento, brindes automáticos. O cliente vê o progresso e marca o próximo.",
+    body: "Pontos a cada atendimento e benefício configurável. O cliente vê o progresso no app.",
   },
   {
     icon: DollarSign,
@@ -144,7 +164,7 @@ const FEATURES = [
   {
     icon: Sparkles,
     title: "Catálogo de serviços vivo",
-    body: "Crie combos, ative ou pause serviços, ajuste preços. Tudo aparece no app na hora.",
+    body: "Crie serviços, pacotes, produtos e categorias. Ative, pause e ajuste preços quando precisar.",
   },
   {
     icon: LineChart,
@@ -159,7 +179,7 @@ const ROLES = [
     title: "Marca o horário em 30 segundos",
     bullets: [
       "Escolhe serviço, profissional e horário",
-      "Recebe lembretes e confirma na hora",
+      "Confirma presença e acompanha regras de reagendamento",
       "Acompanha pontos de fidelidade",
       "Vê o histórico de cada atendimento",
     ],
@@ -172,7 +192,7 @@ const ROLES = [
       "Vê os horários do dia já organizados",
       "Marca atendimento como feito num toque",
       "Acompanha comissão em tempo real",
-      "Acessa histórico do cliente antes do atendimento",
+      "Registra observações e ficha da sessão",
     ],
     accent: "from-[#3F4F24] to-[#556B2F]",
     dark: true,
@@ -204,14 +224,14 @@ const STEPS = [
   {
     n: "03",
     title: "Compartilhe o link",
-    body: "Mande o link do seu estabelecimento no Instagram, WhatsApp e Google. Os agendamentos começam a chegar.",
+    body: "Mande o link de cadastro com o ID do estabelecimento. Clientes entram, criam conta e já conseguem agendar.",
   },
 ];
 
 const FAQ = [
   {
-    q: "Preciso de cartão de crédito para testar?",
-    a: "Não. Você tem 7 dias grátis para usar tudo, sem cadastrar cartão. Se gostar, ativa o plano. Se não, é só não fazer nada.",
+    q: "Como funciona o pagamento?",
+    a: "Você cria a conta e acessa o painel por 7 dias grátis. Antes do fim do trial, escolhe o plano e finaliza a assinatura com checkout seguro pela Stripe.",
   },
   {
     q: "Como meus clientes acessam?",
@@ -219,11 +239,11 @@ const FAQ = [
   },
   {
     q: "Funciona em quantos celulares?",
-    a: "Quantos quiserem. Cada profissional tem o próprio login, e você (admin) acompanha tudo do seu lado. Sem limite de funcionários.",
+    a: "O acesso funciona pelo navegador em celular e computador. Os logins de equipe dependem do plano: Base com 1 funcionário, Médio com 6 e Super com 20.",
   },
   {
     q: "E se eu já tenho clientes cadastrados em outro sistema?",
-    a: "Você pode cadastrar manualmente ou importar uma lista. Nossa equipe te ajuda na migração — sem custo.",
+    a: "Você pode cadastrar manualmente, importar CSV de clientes e exportar os dados do estabelecimento quando precisar.",
   },
   {
     q: "Posso cancelar quando quiser?",
@@ -231,7 +251,7 @@ const FAQ = [
   },
   {
     q: "O programa de fidelidade é configurável?",
-    a: "Sim. Você define quantos pontos cada serviço dá e qual o prêmio. O cliente vê o progresso no app e o sistema avisa quando ele bate a meta.",
+    a: "Sim. Você define quantos pontos cada serviço dá e qual benefício será exibido. O cliente acompanha o progresso no app.",
   },
 ];
 
@@ -270,10 +290,10 @@ function Nav() {
           ))}
         </nav>
         <div className="hidden md:flex items-center gap-3">
-          <a href="/login" className="text-[14px] font-semibold text-[var(--color-ink)] hover:text-[var(--color-gold-deep)]">
+          <a href={LOGIN_HREF} className="text-[14px] font-semibold text-[var(--color-ink)] hover:text-[var(--color-gold-deep)]">
             Entrar
           </a>
-          <a href="/register-shop" className="btn-primary text-sm" style={{ padding: "10px 18px" }}>
+          <a href={REGISTER_SHOP_HREF} className="btn-primary text-sm" style={{ padding: "10px 18px" }}>
             Começar grátis
             <ArrowRight className="w-4 h-4" />
           </a>
@@ -298,7 +318,7 @@ function Nav() {
               {n.label}
             </a>
           ))}
-          <a href="/register-shop" onClick={() => setOpen(false)} className="btn-primary w-full justify-center">
+          <a href={REGISTER_SHOP_HREF} onClick={() => setOpen(false)} className="btn-primary w-full justify-center">
             Começar grátis <ArrowRight className="w-4 h-4" />
           </a>
         </div>
@@ -330,7 +350,7 @@ function Hero() {
         <div>
           <div className="chip mb-6">
             <span className="w-1.5 h-1.5 rounded-full bg-[#22c55e] pulse-dot" />
-            7 dias grátis · sem cartão
+            7 dias grátis para configurar tudo
           </div>
           <h1 className="font-display font-bold text-[44px] md:text-[68px] leading-[0.95] tracking-tight text-[var(--color-ink)]">
             Sua agenda,
@@ -346,8 +366,8 @@ function Hero() {
             Agenda, clientes, financeiro e fidelidade no mesmo app. Pra barbearia, salão, estética, cílios, sobrancelha, unha, tatuagem, massagem — qualquer profissional que marca hora. O Marcaê cuida da bagunça pra você cuidar do cliente.
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-3">
-            <a href="/register-shop" className="btn-primary">
-              Cadastrar meu estabelecimento · 7 dias grátis
+            <a href={REGISTER_SHOP_HREF} className="btn-primary">
+              Cadastrar meu estabelecimento
               <ArrowRight className="w-4 h-4" />
             </a>
             <a href="#como-funciona" className="btn-secondary">
@@ -366,7 +386,7 @@ function Hero() {
                   <Star key={i} className="w-3.5 h-3.5 text-[var(--color-gold)]" fill="currentColor" />
                 ))}
               </div>
-              <div className="text-[12px] text-[var(--color-muted)]">+340 profissionais usam o Marcaê</div>
+              <div className="text-[12px] text-[var(--color-muted)]">Trial liberado para configurar antes de assinar</div>
             </div>
           </div>
         </div>
@@ -480,7 +500,7 @@ function Niches() {
           ))}
         </div>
         <p className="mt-10 text-center text-[14px] text-[var(--color-muted)]">
-          Não viu seu ramo aqui? <a href="/register-shop" className="text-[var(--color-olive)] font-semibold hover:underline">Teste grátis mesmo assim</a> — o Marcaê funciona pra qualquer profissional que marca hora.
+          Não viu seu ramo aqui? <a href={REGISTER_SHOP_HREF} className="text-[var(--color-olive)] font-semibold hover:underline">Comece no trial mesmo assim</a> — o Marcaê funciona pra qualquer profissional que marca hora.
         </p>
       </div>
     </section>
@@ -535,7 +555,7 @@ function HowItWorks() {
         <div className="max-w-2xl mb-12 md:mb-16">
           <span className="section-eyebrow">Como funciona</span>
           <h2 className="font-display font-bold text-[36px] md:text-[52px] leading-[1] text-[var(--color-ink)]">
-            Em 5 minutos seu estabelecimento está no ar.
+            Em poucos minutos seu estabelecimento está no ar.
           </h2>
         </div>
         <div className="grid md:grid-cols-3 gap-4">
@@ -576,6 +596,61 @@ function HowItWorks() {
   );
 }
 
+const PRICING_PLANS = [
+  {
+    key: "base",
+    badge: "Plano base",
+    name: "Base",
+    price: "59,90",
+    summary: "Para começar com agenda, clientes, financeiro e uma equipe enxuta.",
+    highlight: false,
+    features: [
+      "Agenda online e painel administrativo",
+      "Até 2 profissionais na agenda",
+      "1 login de funcionário",
+      "Clientes e serviços sem limite",
+      "Financeiro essencial",
+      "Fidelidade configurável",
+      "Suporte por WhatsApp",
+    ],
+  },
+  {
+    key: "medio",
+    badge: "Mais escolhido",
+    name: "Medio",
+    price: "89,90",
+    summary: "Para equipes que precisam acompanhar comissões, notificações e resultado.",
+    highlight: true,
+    features: [
+      "Tudo do plano Base",
+      "Até 6 profissionais",
+      "6 logins de funcionários",
+      "Comissões por profissional",
+      "Notificações push da agenda",
+      "Relatórios de faturamento",
+      "Prioridade no suporte",
+    ],
+  },
+  {
+    key: "super",
+    badge: "Completo",
+    name: "Super",
+    price: "129,90",
+    summary: "Para operações que querem acompanhamento mais próximo e prioridade.",
+    highlight: false,
+    features: [
+      "Tudo do plano Medio",
+      "Até 20 profissionais",
+      "20 logins de funcionários",
+      "Onboarding assistido",
+      "Revisão de operação e agenda",
+      "Prioridade máxima no suporte",
+      "Insights avançados de operação",
+      "Acima de 20? Fale com suporte",
+    ],
+  },
+] as const;
+
 function Pricing() {
   return (
     <section id="preco" className="py-20 md:py-28 bg-[var(--color-cream-dark)]/50">
@@ -583,60 +658,58 @@ function Pricing() {
         <div className="text-center max-w-2xl mx-auto mb-12 md:mb-16">
           <span className="section-eyebrow">Preço justo</span>
           <h2 className="font-display font-bold text-[36px] md:text-[52px] leading-[1] text-[var(--color-ink)]">
-            Um plano. Tudo incluso.
+            Planos para cada fase do seu negócio.
           </h2>
           <p className="mt-5 text-[17px] text-[var(--color-muted)] leading-relaxed">
-            Sem pegadinha, sem cobrar por funcionário, sem limite de agendamentos.
+            Comece no Base por R$59,90 e suba quando precisar de mais acompanhamento, relatórios e prioridade.
           </p>
         </div>
 
-        <div className="max-w-md mx-auto">
-          <div className="relative rounded-3xl bg-[var(--color-ink)] text-white p-8 md:p-10 shadow-2xl" style={{ boxShadow: "0 40px 80px -30px rgba(12,12,12,.4)" }}>
-            <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[var(--color-gold)] text-[var(--color-ink)] text-[11px] font-bold uppercase tracking-wider px-4 py-1.5 rounded-full">
-              Plano único
-            </div>
-
-            <div className="text-center mb-8">
-              <div className="font-display font-semibold text-[15px] text-[var(--color-gold)] uppercase tracking-wider mb-3">
-                Marcaê Completo
+        <div className="grid gap-5 md:grid-cols-3">
+          {PRICING_PLANS.map((plan) => (
+            <div
+              key={plan.key}
+              className={`relative rounded-3xl p-7 md:p-8 border ${
+                plan.highlight
+                  ? "bg-[var(--color-ink)] text-white border-[var(--color-ink)] shadow-2xl"
+                  : "bg-white text-[var(--color-ink)] border-[var(--color-line)]"
+              }`}
+              style={plan.highlight ? { boxShadow: "0 40px 80px -30px rgba(12,12,12,.4)" } : undefined}
+            >
+              <div className={`text-[11px] font-bold uppercase tracking-wider mb-4 ${plan.highlight ? "text-[var(--color-gold)]" : "text-[var(--color-gold-deep)]"}`}>
+                {plan.badge}
               </div>
-              <div className="flex items-baseline justify-center gap-1">
-                <span className="text-[28px] font-medium text-white/60">R$</span>
-                <span className="font-display font-bold text-[80px] leading-none">59</span>
-                <span className="text-[16px] text-white/60 ml-1">/mês</span>
-              </div>
-              <div className="mt-3 text-[13px] text-white/60">
-                7 dias grátis · cancele quando quiser
-              </div>
-            </div>
+              <h3 className="font-display font-bold text-[30px] leading-none">{plan.name}</h3>
+              <p className={`mt-3 text-[14.5px] leading-relaxed min-h-[66px] ${plan.highlight ? "text-white/70" : "text-[var(--color-muted)]"}`}>
+                {plan.summary}
+              </p>
 
-            <ul className="space-y-3 mb-8">
-              {[
-                "Agenda ilimitada por profissional",
-                "Cadastro ilimitado de clientes",
-                "Programa de fidelidade configurável",
-                "Gestão financeira e comissões",
-                "Catálogo de serviços ilimitado",
-                "Acesso de cliente, funcionário e admin",
-                "Suporte por WhatsApp",
-                "Atualizações inclusas",
-              ].map((it) => (
-                <li key={it} className="flex items-start gap-3 text-[14.5px] text-white/90">
-                  <CheckCircle2 className="w-4 h-4 mt-1 shrink-0 text-[var(--color-gold)]" />
-                  {it}
-                </li>
-              ))}
-            </ul>
+              <div className="flex items-baseline gap-1 my-7">
+                <span className={`text-[21px] font-medium ${plan.highlight ? "text-white/60" : "text-[var(--color-muted)]"}`}>R$</span>
+                <span className="font-display font-bold text-[58px] leading-none">{plan.price}</span>
+                <span className={`text-[15px] ml-1 ${plan.highlight ? "text-white/60" : "text-[var(--color-muted)]"}`}>/mês</span>
+              </div>
 
-            <a href="/register-shop" className="block w-full text-center btn-primary justify-center">
-              Começar agora
-              <ArrowRight className="w-4 h-4" />
-            </a>
-            <div className="mt-4 flex items-center justify-center gap-2 text-[12px] text-white/50">
-              <CreditCard className="w-3.5 h-3.5" />
-              Sem precisar de cartão para testar
+              <ul className="space-y-3 mb-8">
+                {plan.features.map((it) => (
+                  <li key={it} className={`flex items-start gap-3 text-[14px] ${plan.highlight ? "text-white/90" : "text-[var(--color-ink)]"}`}>
+                    <CheckCircle2 className="w-4 h-4 mt-1 shrink-0 text-[var(--color-gold)]" />
+                    {it}
+                  </li>
+                ))}
+              </ul>
+
+              <a href={REGISTER_SHOP_HREF} className="block w-full text-center btn-primary justify-center">
+                Começar no trial
+                <ArrowRight className="w-4 h-4" />
+              </a>
             </div>
-          </div>
+          ))}
+        </div>
+
+        <div className="mt-6 flex items-center justify-center gap-2 text-[12px] text-[var(--color-muted)]">
+          <CreditCard className="w-3.5 h-3.5" />
+          7 dias grátis, checkout seguro pela Stripe e cancelamento pelo portal
         </div>
       </div>
     </section>
@@ -711,10 +784,10 @@ function FinalCta() {
               <span className="text-[var(--color-gold)]">um sistema de verdade.</span>
             </h2>
             <p className="mt-6 text-[17px] text-white/70 max-w-xl mx-auto">
-              Comece agora, sem cartão, sem instalar nada. Em 5 minutos seu estabelecimento está pronto para receber agendamentos.
+              Comece agora com 7 dias grátis, sem instalar nada. Seu estabelecimento fica pronto para receber agendamentos.
             </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-              <a href="/register-shop" className="btn-primary">
+              <a href={REGISTER_SHOP_HREF} className="btn-primary">
                 Cadastrar meu estabelecimento
                 <ArrowRight className="w-4 h-4" />
               </a>
@@ -751,18 +824,18 @@ function Footer() {
         <FooterCol
           title="Suporte"
           items={[
-            { label: "Central de ajuda", href: "#" },
-            { label: "WhatsApp", href: "#" },
-            { label: "Contato", href: "#" },
-            { label: "Status", href: "#" },
+            { label: "Dúvidas frequentes", href: "#faq" },
+            { label: "Falar com suporte", href: SUPPORT_HREF },
+            { label: "Entrar no sistema", href: LOGIN_HREF },
+            { label: "Criar estabelecimento", href: REGISTER_SHOP_HREF },
           ]}
         />
         <FooterCol
           title="Legal"
           items={[
-            { label: "Termos de uso", href: "#" },
-            { label: "Política de privacidade", href: "#" },
-            { label: "LGPD", href: "#" },
+            { label: "Termos de uso", href: LEGAL_HREF },
+            { label: "Política de privacidade", href: LEGAL_HREF },
+            { label: "LGPD", href: LEGAL_HREF },
           ]}
         />
       </div>
@@ -795,4 +868,3 @@ function FooterCol({ title, items }: { title: string; items: { label: string; hr
     </div>
   );
 }
-

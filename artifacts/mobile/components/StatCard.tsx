@@ -15,6 +15,8 @@ interface Props {
 
 export function StatCard({ title, value, icon, trend, trendUp, accent }: Props) {
   const colors = useColors();
+  const accentText = colors.primaryForeground;
+  const accentMuted = `${colors.primaryForeground}CC`;
 
   return (
     <View
@@ -26,13 +28,13 @@ export function StatCard({ title, value, icon, trend, trendUp, accent }: Props) 
         },
       ]}
     >
-      <View style={[styles.iconBox, { backgroundColor: accent ? "#00000022" : colors.secondary }]}>
-        <Feather name={icon} size={18} color={accent ? "#0C0C0C" : colors.gold} />
+      <View style={[styles.iconBox, { backgroundColor: accent ? `${colors.primaryForeground}22` : colors.secondary }]}>
+        <Feather name={icon} size={18} color={accent ? accentText : colors.gold} />
       </View>
-      <Text style={[styles.value, { color: accent ? "#0C0C0C" : colors.foreground }]}>
+      <Text style={[styles.value, { color: accent ? accentText : colors.foreground }]}>
         {value}
       </Text>
-      <Text style={[styles.title, { color: accent ? "#0C0C0C" + "aa" : colors.mutedForeground }]}>
+      <Text style={[styles.title, { color: accent ? accentMuted : colors.mutedForeground }]}>
         {title}
       </Text>
       {trend && (
@@ -40,12 +42,12 @@ export function StatCard({ title, value, icon, trend, trendUp, accent }: Props) 
           <Feather
             name={trendUp ? "trending-up" : "trending-down"}
             size={11}
-            color={trendUp ? colors.success : colors.destructive}
+            color={accent ? accentMuted : trendUp ? colors.success : colors.destructive}
           />
           <Text
             style={[
               styles.trend,
-              { color: trendUp ? colors.success : colors.destructive },
+              { color: accent ? accentMuted : trendUp ? colors.success : colors.destructive },
             ]}
           >
             {trend}

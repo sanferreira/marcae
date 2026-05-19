@@ -1,10 +1,17 @@
-// Stripe webhook handler. Registered in app.ts BEFORE express.json() so the
-// body stays a Buffer (required for signature verification).
 import express, { type Request, type Response, type Router } from "express";
 import { eq } from "drizzle-orm";
 import { db, barbershopsTable } from "@workspace/db";
-import { getStripeSync, getUncachableStripeClient } from "../lib/stripeClient";
+import {
+  getStripeSync,
+  getUncachableStripeClient,
+  isStripeConfigured,
+} from "../lib/stripeClient";
 import { logger } from "../lib/logger";
+import {
+  PAYMENT_PENDING_PLAN,
+  paidPlanFromStripeSubscription,
+  subscriptionStateFromStripeSubscription,
+} from "../lib/plans";
 
 let webhookSecret: string | null = null;
 export function setWebhookSecret(s: string): void { webhookSecret = s; }
@@ -16,15 +23,15 @@ export function buildWebhookRouter(): Router {
 }
 
 async function handleWebhook(req: Request, res: Response): Promise<void> {
+  if (!isStripeConfigured()) {
+    res.status(503).json({ error: "Stripe not configured" });
+    return;
+  }
+
   const signature = req.headers["stripe-signature"];
   if (!signature) { res.status(400).json({ error: "Missing signature" }); return; }
   const sig = Array.isArray(signature) ? signature[0] : signature;
 
-  // We MUST verify the signature before reading the payload as a trusted event.
-  // Without a webhook secret we cannot mutate billing state from this request —
-  // the body is attacker-controlled. We still let stripe-replit-sync process it
-  // (it does its own verification using the secret it provisioned), but we will
-  // not run our own reconciliation on the unverified payload.
   let verifiedEvent: unknown = null;
   if (webhookSecret) {
     try {
@@ -37,8 +44,6 @@ async function handleWebhook(req: Request, res: Response): Promise<void> {
     }
   }
 
-  // Sync into the local stripe schema (products, customers, subscriptions, etc.).
-  // stripe-replit-sync verifies the signature against the secret it manages.
   let syncOk = false;
   try {
     const sync = await getStripeSync();
@@ -48,12 +53,8 @@ async function handleWebhook(req: Request, res: Response): Promise<void> {
     logger.warn({ err }, "stripe-replit-sync processWebhook failed");
   }
 
-  // Only reconcile barbershops state from a trusted source:
-  // either our own constructEvent succeeded, or sync (which also verifies) accepted it.
   if (verifiedEvent || syncOk) {
     try {
-      // If we don't have our own verified event but sync verified, re-parse the body.
-      // It's safe now because we know the signature was accepted upstream.
       const event = verifiedEvent ?? JSON.parse((req.body as Buffer).toString("utf8"));
       await reconcileSubscriptionEvent(event);
     } catch (err) {
@@ -73,33 +74,173 @@ interface StripeEvent {
 
 async function reconcileSubscriptionEvent(rawEvent: unknown): Promise<void> {
   const e = rawEvent as StripeEvent;
-  if (!e?.type?.startsWith("customer.subscription.")) return;
-  const sub = e.data.object as {
-    id: string;
-    customer: string;
-    status: string;
-    current_period_end?: number;
-    cancel_at_period_end?: boolean;
-  };
-  if (!sub?.customer) return;
+  if (!e?.type) return;
 
-  const [shop] = await db.select().from(barbershopsTable)
-    .where(eq(barbershopsTable.stripeCustomerId, sub.customer))
-    .limit(1);
-  if (!shop) {
-    logger.info({ customer: sub.customer }, "subscription event for unknown customer");
+  if (e.type.startsWith("customer.subscription.")) {
+    await reconcileSubscriptionObject(e.data.object);
     return;
   }
 
-  const isActive = sub.status === "active" || sub.status === "trialing";
-  const renewsAt = sub.current_period_end ? new Date(sub.current_period_end * 1000) : null;
+  if (e.type === "invoice.paid") {
+    await reconcilePaidInvoice(e.data.object);
+    return;
+  }
 
-  await db.update(barbershopsTable).set({
-    plan: isActive ? "premium" : "expired",
-    stripeSubscriptionId: sub.id,
-    subscriptionRenewsAt: renewsAt,
-  }).where(eq(barbershopsTable.id, shop.id));
+  if (e.type === "invoice.payment_failed") {
+    await reconcileFailedInvoice(e.data.object);
+    return;
+  }
 
-  logger.info({ shopId: shop.id, status: sub.status, renewsAt }, "barbershop plan reconciled from stripe webhook");
+  if (e.type === "checkout.session.completed") {
+    await reconcileCheckoutCompleted(e.data.object);
+  }
 }
 
+function stripeId(value: unknown): string | null {
+  if (typeof value === "string") return value;
+  if (value && typeof value === "object" && typeof (value as { id?: unknown }).id === "string") {
+    return (value as { id: string }).id;
+  }
+  return null;
+}
+
+function customerIdFromObject(raw: unknown): string | null {
+  const obj = raw as { customer?: unknown } | null | undefined;
+  return stripeId(obj?.customer);
+}
+
+function subscriptionIdFromObject(raw: unknown): string | null {
+  const obj = raw as {
+    subscription?: unknown;
+    parent?: { subscription_details?: { subscription?: unknown } | null } | null;
+  } | null | undefined;
+
+  return stripeId(obj?.subscription) ?? stripeId(obj?.parent?.subscription_details?.subscription);
+}
+
+function periodEndFromSubscription(raw: unknown): Date | null {
+  const periodEnd = (raw as { current_period_end?: unknown } | null | undefined)?.current_period_end;
+  return typeof periodEnd === "number" ? new Date(periodEnd * 1000) : null;
+}
+
+function periodEndFromInvoice(raw: unknown): Date | null {
+  const invoice = raw as {
+    lines?: { data?: Array<{ period?: { end?: unknown } | null }> } | null;
+  } | null | undefined;
+  const periodEnd = invoice?.lines?.data?.[0]?.period?.end;
+  return typeof periodEnd === "number" ? new Date(periodEnd * 1000) : null;
+}
+
+async function getSubscription(subscriptionId: string): Promise<unknown | null> {
+  try {
+    const stripe = await getUncachableStripeClient();
+    return await stripe.subscriptions.retrieve(subscriptionId, { expand: ["items.data.price"] });
+  } catch (err) {
+    logger.warn({ err, subscriptionId }, "failed to fetch stripe subscription");
+    return null;
+  }
+}
+
+async function findShopByCustomer(customerId: string) {
+  const [shop] = await db.select().from(barbershopsTable)
+    .where(eq(barbershopsTable.stripeCustomerId, customerId))
+    .limit(1);
+  if (!shop) {
+    logger.info({ customer: customerId }, "billing event for unknown customer");
+    return null;
+  }
+  return shop;
+}
+
+async function applyBillingState(raw: {
+  customerId: string;
+  plan: string;
+  stripeSubscriptionId?: string | null;
+  renewsAt?: Date | null;
+  reason: string;
+}): Promise<void> {
+  const shop = await findShopByCustomer(raw.customerId);
+  if (!shop) return;
+
+  await db.update(barbershopsTable).set({
+    plan: raw.plan,
+    stripeSubscriptionId: raw.stripeSubscriptionId ?? shop.stripeSubscriptionId,
+    subscriptionRenewsAt: raw.renewsAt ?? null,
+  }).where(eq(barbershopsTable.id, shop.id));
+
+  logger.info({
+    shopId: shop.id,
+    plan: raw.plan,
+    renewsAt: raw.renewsAt ?? null,
+    reason: raw.reason,
+  }, "barbershop plan reconciled from stripe webhook");
+}
+
+async function reconcileSubscriptionObject(rawSubscription: unknown): Promise<void> {
+  const customerId = customerIdFromObject(rawSubscription);
+  if (!customerId) return;
+
+  await applyBillingState({
+    customerId,
+    plan: subscriptionStateFromStripeSubscription(rawSubscription),
+    stripeSubscriptionId: stripeId((rawSubscription as { id?: unknown } | null | undefined)?.id),
+    renewsAt: periodEndFromSubscription(rawSubscription),
+    reason: "subscription",
+  });
+}
+
+async function reconcilePaidInvoice(rawInvoice: unknown): Promise<void> {
+  const customerId = customerIdFromObject(rawInvoice);
+  if (!customerId) return;
+
+  const subscriptionId = subscriptionIdFromObject(rawInvoice);
+  if (!subscriptionId) {
+    logger.info({ customer: customerId }, "paid invoice without subscription ignored");
+    return;
+  }
+  const subscription = subscriptionId ? await getSubscription(subscriptionId) : null;
+
+  await applyBillingState({
+    customerId,
+    plan: subscription ? paidPlanFromStripeSubscription(subscription) : paidPlanFromStripeSubscription(rawInvoice),
+    stripeSubscriptionId: subscriptionId,
+    renewsAt: periodEndFromSubscription(subscription) ?? periodEndFromInvoice(rawInvoice),
+    reason: "invoice.paid",
+  });
+}
+
+async function reconcileFailedInvoice(rawInvoice: unknown): Promise<void> {
+  const customerId = customerIdFromObject(rawInvoice);
+  if (!customerId) return;
+  const subscriptionId = subscriptionIdFromObject(rawInvoice);
+  if (!subscriptionId) {
+    logger.info({ customer: customerId }, "failed invoice without subscription ignored");
+    return;
+  }
+
+  await applyBillingState({
+    customerId,
+    plan: PAYMENT_PENDING_PLAN,
+    stripeSubscriptionId: subscriptionId,
+    renewsAt: periodEndFromInvoice(rawInvoice),
+    reason: "invoice.payment_failed",
+  });
+}
+
+async function reconcileCheckoutCompleted(rawSession: unknown): Promise<void> {
+  const session = rawSession as { payment_status?: unknown } | null | undefined;
+  if (session?.payment_status !== "paid" && session?.payment_status !== "no_payment_required") return;
+
+  const customerId = customerIdFromObject(rawSession);
+  const subscriptionId = subscriptionIdFromObject(rawSession);
+  if (!customerId || !subscriptionId) return;
+
+  const subscription = await getSubscription(subscriptionId);
+  await applyBillingState({
+    customerId,
+    plan: subscription ? paidPlanFromStripeSubscription(subscription) : paidPlanFromStripeSubscription(rawSession),
+    stripeSubscriptionId: subscriptionId,
+    renewsAt: periodEndFromSubscription(subscription),
+    reason: "checkout.session.completed",
+  });
+}

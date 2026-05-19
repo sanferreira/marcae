@@ -11,6 +11,10 @@ export type BarbershopPlan =
 
 export const BarbershopPlan = {
   trial: "trial",
+  base: "base",
+  medio: "medio",
+  super: "super",
   premium: "premium",
+  pending: "pending",
   expired: "expired",
 } as const;

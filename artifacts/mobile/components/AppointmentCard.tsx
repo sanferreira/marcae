@@ -93,6 +93,12 @@ export function AppointmentCard({ appointment, onPress, onCancel, onComplete, on
         <View style={[styles.clientRow, { borderTopColor: colors.border }]}>
           <Feather name="user" size={12} color={colors.mutedForeground} />
           <Text style={[styles.clientName, { color: colors.mutedForeground }]}>{appointment.clientName}</Text>
+          {!!appointment.clientNotes && (
+            <>
+              <Feather name="message-square" size={12} color={colors.gold} />
+              <Text style={[styles.clientName, { color: colors.gold }]}>com observacao</Text>
+            </>
+          )}
         </View>
       )}
 
@@ -106,7 +112,7 @@ export function AppointmentCard({ appointment, onPress, onCancel, onComplete, on
           )}
           {onComplete && (
             <TouchableOpacity style={[styles.actionBtn, styles.completeBtn, { backgroundColor: colors.gold }]} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); onComplete(); }}>
-              <Text style={[styles.actionText, { color: "#0C0C0C" }]}>Concluir</Text>
+              <Text style={[styles.actionText, { color: colors.primaryForeground }]}>Concluir</Text>
             </TouchableOpacity>
           )}
         </View>

@@ -8,27 +8,31 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { AppAvatar } from "@/components/AppAvatar";
 import { useAuth } from "@/contexts/AuthContext";
 import { Appointment, useData } from "@/contexts/DataContext";
 import { useColors } from "@/hooks/useColors";
+import { typedInputProps } from "@/lib/inputProps";
 
-const PAY_METHODS = ["Dinheiro", "PIX", "Cartão de Débito", "Cartão de Crédito"];
+const PAY_METHODS = ["Dinheiro", "PIX", "Cartão de Débito", "Cartão de Crédito", "Pacote"];
 
 export default function EmployeeTodayScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { user, barbershop } = useAuth();
-  const { appointments, professionals, updateAppointmentStatus, cancelAppointment } = useData();
+  const { appointments, professionals, updateAppointmentStatus, cancelAppointment, updateAppointmentNotes } = useData();
 
   const [completing, setCompleting] = useState<Appointment | null>(null);
   const [payMethod, setPayMethod] = useState("");
+  const [professionalNotes, setProfessionalNotes] = useState("");
 
-  const topPad = Platform.OS === "web" ? 67 : insets.top;
+  const topPad = insets.top;
   const botPad = Platform.OS === "web" ? 34 : insets.bottom;
 
   const profId = user?.professionalId;
@@ -63,11 +67,15 @@ export default function EmployeeTodayScreen() {
   const openComplete = (apt: Appointment) => {
     setCompleting(apt);
     setPayMethod("");
+    setProfessionalNotes(apt.professionalNotes ?? "");
   };
 
   const confirmComplete = async () => {
     if (!completing || !payMethod) return;
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    if (professionalNotes.trim()) {
+      await updateAppointmentNotes(completing.id, professionalNotes.trim());
+    }
     await updateAppointmentStatus(completing.id, "completed", payMethod);
     setCompleting(null);
   };
@@ -101,9 +109,14 @@ export default function EmployeeTodayScreen() {
               </Text>
             )}
           </View>
-          <View style={[styles.avatar, { backgroundColor: colors.gold }]}>
-            <Text style={styles.avatarText}>{me?.avatar ?? user?.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}</Text>
-          </View>
+          <AppAvatar
+            imageUri={me?.avatarImage ?? user?.avatarImage}
+            fallback={me?.avatar ?? user?.name?.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase() ?? ""}
+            size={50}
+            backgroundColor={colors.gold}
+            textColor={colors.primaryForeground}
+            fontSize={16}
+          />
         </View>
 
         {/* Today Stats */}
@@ -131,7 +144,7 @@ export default function EmployeeTodayScreen() {
             <Feather name="award" size={16} color={colors.gold} />
             <Text style={[styles.commissionTitle, { color: colors.foreground }]}>Sua comissão</Text>
             <View style={[styles.commissionPctBadge, { backgroundColor: colors.gold }]}>
-              <Text style={styles.commissionPctText}>{commissionPct}%</Text>
+              <Text style={[styles.commissionPctText, { color: colors.primaryForeground }]}>{commissionPct}%</Text>
             </View>
           </View>
           <View style={styles.commissionRow}>
@@ -174,6 +187,11 @@ export default function EmployeeTodayScreen() {
                       <Text style={[styles.aptMetaDot, { color: colors.border }]}>·</Text>
                       <Text style={[styles.aptPrice, { color: colors.gold }]}>R${apt.totalPrice}</Text>
                     </View>
+                    {!!apt.clientNotes && (
+                      <Text style={[styles.clientNote, { color: colors.mutedForeground }]} numberOfLines={2}>
+                        Obs: {apt.clientNotes}
+                      </Text>
+                    )}
                   </View>
                 </View>
                 <View style={[styles.aptActions, { borderTopColor: colors.border }]}>
@@ -182,8 +200,8 @@ export default function EmployeeTodayScreen() {
                     <Text style={[styles.aptBtnText, { color: colors.destructive }]}>Cancelar</Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={[styles.aptBtnPrimary, { backgroundColor: colors.gold }]} onPress={() => openComplete(apt)}>
-                    <Feather name="check" size={14} color="#0C0C0C" />
-                    <Text style={styles.aptBtnPrimaryText}>Concluir atendimento</Text>
+                    <Feather name="check" size={14} color={colors.primaryForeground} />
+                    <Text style={[styles.aptBtnPrimaryText, { color: colors.primaryForeground }]}>Concluir atendimento</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -258,13 +276,23 @@ export default function EmployeeTodayScreen() {
                   <Text style={[styles.payOptionText, { color: colors.foreground }]}>{m}</Text>
                 </TouchableOpacity>
               ))}
+              <Text style={[styles.payLabel, { color: colors.foreground }]}>Ficha da sessao</Text>
+              <TextInput
+                style={[styles.notesInput, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.card }]}
+                value={professionalNotes}
+                onChangeText={setProfessionalNotes}
+                placeholder="Resumo, materiais usados, restricoes, retorno ou evolucao do cliente"
+                placeholderTextColor={colors.mutedForeground}
+                multiline
+                {...typedInputProps("text")}
+              />
               <TouchableOpacity
                 style={[styles.confirmBtn, { backgroundColor: payMethod ? colors.gold : colors.secondary }]}
                 onPress={confirmComplete}
                 disabled={!payMethod}
               >
-                <Feather name="check" size={16} color={payMethod ? "#0C0C0C" : colors.mutedForeground} />
-                <Text style={[styles.confirmBtnText, { color: payMethod ? "#0C0C0C" : colors.mutedForeground }]}>
+                <Feather name="check" size={16} color={payMethod ? colors.primaryForeground : colors.mutedForeground} />
+                <Text style={[styles.confirmBtnText, { color: payMethod ? colors.primaryForeground : colors.mutedForeground }]}>
                   Confirmar conclusão
                 </Text>
               </TouchableOpacity>
@@ -283,8 +311,6 @@ const styles = StyleSheet.create({
   greeting: { fontSize: 13, fontFamily: "Inter_400Regular" },
   title: { fontSize: 22, fontFamily: "Inter_700Bold", marginTop: 2 },
   shopHint: { fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 },
-  avatar: { width: 50, height: 50, borderRadius: 25, alignItems: "center", justifyContent: "center" },
-  avatarText: { fontSize: 16, fontFamily: "Inter_700Bold", color: "#0C0C0C" },
   statsRow: { flexDirection: "row", gap: 10 },
   statCard: { flex: 1, alignItems: "flex-start", padding: 14, borderRadius: 14, borderWidth: 1, gap: 4 },
   statValue: { fontSize: 22, fontFamily: "Inter_700Bold" },
@@ -293,7 +319,7 @@ const styles = StyleSheet.create({
   commissionHeader: { flexDirection: "row", alignItems: "center", gap: 8 },
   commissionTitle: { flex: 1, fontSize: 14, fontFamily: "Inter_700Bold" },
   commissionPctBadge: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 6 },
-  commissionPctText: { fontSize: 11, fontFamily: "Inter_700Bold", color: "#0C0C0C" },
+  commissionPctText: { fontSize: 11, fontFamily: "Inter_700Bold" },
   commissionRow: { flexDirection: "row", alignItems: "center" },
   commissionItem: { flex: 1, alignItems: "center", gap: 2 },
   commissionVal: { fontSize: 18, fontFamily: "Inter_700Bold" },
@@ -307,6 +333,7 @@ const styles = StyleSheet.create({
   timeText: { fontSize: 14, fontFamily: "Inter_700Bold" },
   clientName: { fontSize: 15, fontFamily: "Inter_600SemiBold" },
   svcText: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 2 },
+  clientNote: { fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 5, lineHeight: 15 },
   aptMeta: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 4 },
   aptMetaText: { fontSize: 11, fontFamily: "Inter_400Regular" },
   aptMetaDot: { fontSize: 12 },
@@ -316,7 +343,7 @@ const styles = StyleSheet.create({
   aptBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 9, paddingHorizontal: 14, borderRadius: 10, borderWidth: 1.5 },
   aptBtnText: { fontSize: 12, fontFamily: "Inter_600SemiBold" },
   aptBtnPrimary: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 11, borderRadius: 10 },
-  aptBtnPrimaryText: { fontSize: 13, fontFamily: "Inter_700Bold", color: "#0C0C0C" },
+  aptBtnPrimaryText: { fontSize: 13, fontFamily: "Inter_700Bold" },
   empty: { alignItems: "center", paddingVertical: 50, gap: 10, paddingHorizontal: 30 },
   emptyTitle: { fontSize: 16, fontFamily: "Inter_700Bold" },
   emptyText: { fontSize: 13, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 19 },
@@ -331,6 +358,7 @@ const styles = StyleSheet.create({
   payLabel: { fontSize: 14, fontFamily: "Inter_700Bold", marginTop: 6, marginBottom: 4 },
   payOption: { flexDirection: "row", alignItems: "center", gap: 10, padding: 14, borderRadius: 12, borderWidth: 1.5 },
   payOptionText: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
+  notesInput: { borderWidth: 1.5, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, minHeight: 92, fontSize: 14, fontFamily: "Inter_400Regular", textAlignVertical: "top" },
   confirmBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 16, borderRadius: 14, marginTop: 10 },
   confirmBtnText: { fontSize: 15, fontFamily: "Inter_700Bold" },
 });

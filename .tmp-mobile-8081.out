@@ -1,0 +1,11 @@
+
+> @workspace/mobile@0.0.0 dev:local D:\Projetos\Service-Provider\artifacts\mobile
+> pnpm exec expo start --localhost --port 8081
+
+env: load .env
+env: export EXPO_PUBLIC_API_URL
+Starting project at D:\Projetos\Service-Provider\artifacts\mobile
+React Compiler enabled
+Starting Metro Bundler
+Waiting on http://localhost:8081
+Logs for your project will appear below.

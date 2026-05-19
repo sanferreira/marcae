@@ -3,8 +3,15 @@
   "version": "0.0.0",
   "license": "MIT",
   "scripts": {
-    "preinstall": "sh -c 'rm -f package-lock.json yarn.lock; case \"$npm_config_user_agent\" in pnpm/*) ;; *) echo \"Use pnpm instead\" >&2; exit 1 ;; esac'",
+    "preinstall": "node ./scripts/ensure-pnpm.mjs",
     "build": "pnpm run typecheck && pnpm -r --if-present run build",
+    "db:up": "docker compose up -d postgres pgadmin && node ./scripts/sync-pgadmin.mjs",
+    "db:down": "docker compose down",
+    "db:pgadmin:sync": "node ./scripts/sync-pgadmin.mjs",
+    "db:push": "node --env-file=artifacts/api-server/.env ./scripts/run-pnpm.mjs --filter @workspace/db run push",
+    "api:dev": "pnpm --filter @workspace/api-server run dev",
+    "landing:dev": "pnpm --filter @workspace/landing run dev",
+    "mobile:dev": "pnpm --filter @workspace/mobile run dev",
     "typecheck:libs": "tsc --build",
     "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck"
   },

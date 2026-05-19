@@ -50,4 +50,17 @@ router.patch("/products/:id", requireRole("admin"), async (req: Request, res: Re
   res.json(serializeProduct(row));
 });
 
+router.delete("/products/:id", requireRole("admin"), async (req: Request, res: Response): Promise<void> => {
+  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const shop = req.auth!.barbershop.id;
+  const [row] = await db.delete(productsTable)
+    .where(and(eq(productsTable.id, id), eq(productsTable.barbershopId, shop)))
+    .returning();
+  if (!row) {
+    res.status(404).json({ error: "Produto nao encontrado." });
+    return;
+  }
+  res.status(204).send();
+});
+
 export default router;

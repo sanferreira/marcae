@@ -1,9 +1,15 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
 import * as WebBrowser from "expo-web-browser";
+import { Platform } from "react-native";
 import { apiFetch, setToken } from "@/lib/api";
 import { registerDeviceForPush, unregisterDeviceForPush } from "@/lib/push";
+import { DEFAULT_PAID_PLAN, type PaidPlanKey, type SubscriptionPlanKey } from "@/constants/plans";
 
 export type UserRole = "client" | "employee" | "admin";
+export type ScheduleDayKey = "seg" | "ter" | "qua" | "qui" | "sex" | "sab" | "dom";
+export interface ScheduleDay { enabled: boolean; startTime: string; endTime: string; }
+export type BusinessSchedule = Record<ScheduleDayKey, ScheduleDay>;
+export interface IntakeField { key: string; label: string; type: "text" | "textarea" | "date" | "phone"; }
 
 export interface Barbershop {
   id: string;
@@ -15,10 +21,14 @@ export interface Barbershop {
   address?: string | null;
   createdAt: string;
   trialEndsAt: string;
-  plan: "trial" | "premium" | "expired";
+  plan: SubscriptionPlanKey;
   subscriptionRenewsAt?: string | null;
   brandPrimary: string;
   brandAccent: string;
+  bookingBufferMinutes: number;
+  bookingAvailabilityMode: "duration_buffer" | "release_on_complete";
+  businessSchedule: BusinessSchedule;
+  intakeFields: IntakeField[];
 }
 
 export interface AuthUser {
@@ -28,17 +38,32 @@ export interface AuthUser {
   name: string;
   email: string;
   phone?: string | null;
+  avatarImage?: string | null;
   professionalId?: string | null;
   clientId?: string | null;
   createdAt: string;
 }
 
 export interface PlanStatus {
-  plan: "trial" | "premium" | "expired";
+  plan: SubscriptionPlanKey;
   trialDaysLeft: number;
   isActive: boolean;
   isPremium: boolean;
+  isPaid?: boolean;
+  planName?: string;
+  planPrice?: string | null;
   trialEndsAt: string;
+  features?: {
+    team: boolean;
+    commissions: boolean;
+    notifications: boolean;
+    reports: boolean;
+    advancedReports?: boolean;
+    limits?: {
+      professionals: number;
+      employeeLogins: number;
+    };
+  };
 }
 
 interface AuthSession {
@@ -53,7 +78,7 @@ interface AuthContextType {
   barbershop: Barbershop | null;
   isLoading: boolean;
   planStatus: PlanStatus;
-  // Lookup (TODO Phase 2 — backed by API endpoint)
+  // Employee users linked to professionals in this barbershop.
   barbershopUsers: AuthUser[];
   // Actions
   login: (slug: string, email: string, password: string) => Promise<{ ok: boolean; error?: string }>;
@@ -69,11 +94,12 @@ interface AuthContextType {
     professionalId: string; name: string; email: string; password: string; phone?: string;
   }) => Promise<{ ok: boolean; error?: string }>;
   removeEmployeeUser: (userId: string) => Promise<void>;
-  upgradeToPremium: () => Promise<{ ok: boolean; error?: string }>;
+  upgradeToPremium: (plan?: PaidPlanKey) => Promise<{ ok: boolean; error?: string }>;
   openBillingPortal: () => Promise<{ ok: boolean; error?: string }>;
   refreshSession: () => Promise<void>;
   cancelSubscription: () => Promise<void>;
-  updateBarbershop: (patch: { name?: string; phone?: string | null; address?: string | null; brandPrimary?: string; brandAccent?: string }) => Promise<{ ok: boolean; error?: string }>;
+  updateBarbershop: (patch: { name?: string; phone?: string | null; address?: string | null; brandPrimary?: string; brandAccent?: string; bookingBufferMinutes?: number; bookingAvailabilityMode?: "duration_buffer" | "release_on_complete"; businessSchedule?: BusinessSchedule; intakeFields?: IntakeField[] }) => Promise<{ ok: boolean; error?: string }>;
+  updateProfile: (patch: { name?: string; email?: string; phone?: string | null; avatar?: string; avatarImage?: string | null; specialty?: string; bio?: string }) => Promise<{ ok: boolean; error?: string }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -83,6 +109,7 @@ const EMPTY_PLAN: PlanStatus = { plan: "trial", trialDaysLeft: 0, isActive: fals
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<AuthSession | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [barbershopUsers, setBarbershopUsers] = useState<AuthUser[]>([]);
 
   // Hydrate: try /auth/me with stored token
   useEffect(() => {
@@ -98,8 +125,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const persistSession = useCallback(async (s: AuthSession | null) => {
-    setSession(s);
     await setToken(s?.token ?? null);
+    setSession(s);
+    if (!s) setBarbershopUsers([]);
     if (s) void registerDeviceForPush().catch(() => undefined);
   }, []);
 
@@ -130,20 +158,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { ok: true, barbershopId: r.data.user.barbershopId, userId: r.data.user.id };
   };
 
-  // ── stubs (will be wired to API in Phase 2) ─────────────────────────────
-  const barbershopUsers: AuthUser[] = useMemo(() => [], []);
-  const upsertEmployeeUser: AuthContextType["upsertEmployeeUser"] = async () =>
-    ({ ok: false, error: "Em breve: gerencie funcionários no painel completo." });
-  const removeEmployeeUser: AuthContextType["removeEmployeeUser"] = async () => { /* noop */ };
+  const refreshEmployeeUsers = useCallback(async () => {
+    const r = await apiFetch<AuthUser[]>("/employees");
+    setBarbershopUsers(r.ok ? r.data : []);
+  }, []);
+
+  useEffect(() => {
+    if (session?.user.role === "admin") {
+      void refreshEmployeeUsers();
+      return;
+    }
+    setBarbershopUsers([]);
+  }, [refreshEmployeeUsers, session?.token, session?.user.role]);
+
+  const upsertEmployeeUser: AuthContextType["upsertEmployeeUser"] = useCallback(async (data) => {
+    const r = await apiFetch<AuthUser>("/employees", { method: "POST", body: data });
+    if (!r.ok) return { ok: false, error: r.error };
+
+    setBarbershopUsers((current) => {
+      const next = current.filter((user) => user.id !== r.data.id && user.professionalId !== r.data.professionalId);
+      return [...next, r.data];
+    });
+    return { ok: true };
+  }, []);
+
+  const removeEmployeeUser: AuthContextType["removeEmployeeUser"] = useCallback(async (userId) => {
+    const r = await apiFetch<void>(`/employees/${userId}`, { method: "DELETE" });
+    if (r.ok) setBarbershopUsers((current) => current.filter((user) => user.id !== userId));
+  }, []);
 
   const refreshSession = useCallback(async () => {
     const r = await apiFetch<AuthSession>("/auth/me");
     if (r.ok) setSession(r.data);
   }, []);
 
-  const upgradeToPremium: AuthContextType["upgradeToPremium"] = useCallback(async () => {
-    const r = await apiFetch<{ url: string }>("/billing/checkout", { method: "POST", body: {} });
+  const upgradeToPremium: AuthContextType["upgradeToPremium"] = useCallback(async (plan = DEFAULT_PAID_PLAN) => {
+    const r = await apiFetch<{ url: string }>("/billing/checkout", { method: "POST", body: { plan } });
     if (!r.ok) return { ok: false, error: r.error };
+    if (Platform.OS === "web" && typeof window !== "undefined") {
+      window.location.assign(r.data.url);
+      return { ok: true };
+    }
     try {
       await WebBrowser.openBrowserAsync(r.data.url);
     } catch (err) {
@@ -158,6 +213,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const openBillingPortal: AuthContextType["openBillingPortal"] = useCallback(async () => {
     const r = await apiFetch<{ url: string }>("/billing/portal", { method: "POST", body: {} });
     if (!r.ok) return { ok: false, error: r.error };
+    if (Platform.OS === "web" && typeof window !== "undefined") {
+      window.location.assign(r.data.url);
+      return { ok: true };
+    }
     try { await WebBrowser.openBrowserAsync(r.data.url); }
     catch (err) { return { ok: false, error: (err as Error).message }; }
     await apiFetch("/billing/sync", { method: "POST", body: {} });
@@ -168,9 +227,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const cancelSubscription = async () => { /* handled via Stripe portal */ };
 
   const updateBarbershop: AuthContextType["updateBarbershop"] = useCallback(async (patch) => {
-    const r = await apiFetch<Barbershop>("/barbershop", { method: "PATCH", body: patch });
+    const r = await apiFetch<Barbershop>("/establishment", { method: "PATCH", body: patch });
     if (!r.ok) return { ok: false, error: r.error };
     setSession((s) => (s ? { ...s, barbershop: { ...s.barbershop, ...r.data } } : s));
+    return { ok: true };
+  }, []);
+
+  const updateProfile: AuthContextType["updateProfile"] = useCallback(async (patch) => {
+    const r = await apiFetch<AuthSession>("/auth/me", { method: "PATCH", body: patch });
+    if (!r.ok) return { ok: false, error: r.error };
+    setSession(r.data);
     return { ok: true };
   }, []);
 
@@ -185,7 +251,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       registerBarbershop, registerClient,
       upsertEmployeeUser, removeEmployeeUser,
       upgradeToPremium, openBillingPortal, refreshSession, cancelSubscription,
-      updateBarbershop,
+      updateBarbershop, updateProfile,
     }}>
       {children}
     </AuthContext.Provider>

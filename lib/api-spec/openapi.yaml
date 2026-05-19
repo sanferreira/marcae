@@ -236,13 +236,22 @@ components:
         address: { type: string, nullable: true }
         plan:
           type: string
-          enum: [trial, premium, expired]
+          enum: [trial, base, medio, super, premium, pending, expired]
         trialEndsAt: { type: string, format: date-time }
         subscriptionRenewsAt: { type: string, format: date-time, nullable: true }
         brandPrimary: { type: string, description: "Primary brand color (hex #RRGGBB)" }
         brandAccent: { type: string, description: "Accent / dark brand color (hex #RRGGBB)" }
+        bookingBufferMinutes: { type: integer, minimum: 0 }
+        bookingAvailabilityMode:
+          type: string
+          enum: [duration_buffer, release_on_complete]
+        businessSchedule:
+          $ref: "#/components/schemas/BusinessSchedule"
+        intakeFields:
+          type: array
+          items: { $ref: "#/components/schemas/IntakeField" }
         createdAt: { type: string, format: date-time }
-      required: [id, slug, name, ownerName, ownerEmail, plan, trialEndsAt, brandPrimary, brandAccent, createdAt]
+      required: [id, slug, name, ownerName, ownerEmail, plan, trialEndsAt, brandPrimary, brandAccent, bookingBufferMinutes, bookingAvailabilityMode, businessSchedule, intakeFields, createdAt]
 
     UpdateBarbershopInput:
       type: object
@@ -258,6 +267,35 @@ components:
           type: string
           pattern: "^#[0-9A-Fa-f]{6}$"
           description: "Accent / dark brand color (hex #RRGGBB)"
+        bookingBufferMinutes: { type: integer, minimum: 0 }
+        bookingAvailabilityMode:
+          type: string
+          enum: [duration_buffer, release_on_complete]
+        businessSchedule:
+          $ref: "#/components/schemas/BusinessSchedule"
+        intakeFields:
+          type: array
+          items: { $ref: "#/components/schemas/IntakeField" }
+
+    BusinessSchedule:
+      type: object
+      additionalProperties:
+        type: object
+        properties:
+          enabled: { type: boolean }
+          startTime: { type: string }
+          endTime: { type: string }
+        required: [enabled, startTime, endTime]
+
+    IntakeField:
+      type: object
+      properties:
+        key: { type: string }
+        label: { type: string }
+        type:
+          type: string
+          enum: [text, textarea, date, phone]
+      required: [key, label, type]
 
     BarbershopLookup:
       type: object
@@ -289,12 +327,15 @@ components:
       properties:
         plan:
           type: string
-          enum: [trial, premium, expired]
+          enum: [trial, base, medio, super, premium, pending, expired]
         trialDaysLeft: { type: integer }
         isActive: { type: boolean }
         isPremium: { type: boolean }
+        isPaid: { type: boolean }
+        planName: { type: string }
+        planPrice: { type: string, nullable: true }
         trialEndsAt: { type: string, format: date-time }
-      required: [plan, trialDaysLeft, isActive, isPremium, trialEndsAt]
+      required: [plan, trialDaysLeft, isActive, isPremium, isPaid, planName, planPrice, trialEndsAt]
 
     AuthSession:
       type: object

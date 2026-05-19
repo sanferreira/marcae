@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from "express";
-import { lookupSession, SESSION_COOKIE } from "./sessions";
+import { isCookieAuthEnabled, lookupSession, SESSION_COOKIE } from "./sessions";
 import type { Barbershop, User } from "@workspace/db";
 
 declare global {
@@ -14,6 +14,7 @@ declare global {
 function tokenFromReq(req: Request): string | null {
   const header = req.headers.authorization;
   if (header && header.startsWith("Bearer ")) return header.slice(7);
+  if (!isCookieAuthEnabled()) return null;
   const cookieToken = (req as Request & { cookies?: Record<string, string> }).cookies?.[SESSION_COOKIE];
   return cookieToken ?? null;
 }

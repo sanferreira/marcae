@@ -3,7 +3,7 @@ import { barbershopsTable } from "./barbershops";
 
 export const cashEntriesTable = pgTable("cash_entries", {
   id: uuid("id").primaryKey().defaultRandom(),
-  barbershopId: uuid("barbershop_id").notNull().references(() => barbershopsTable.id, { onDelete: "cascade" }),
+  barbershopId: uuid("establishment_id").notNull().references(() => barbershopsTable.id, { onDelete: "cascade" }),
   description: text("description").notNull(),
   amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
   type: text("type").notNull(), // 'income' | 'expense'

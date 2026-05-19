@@ -50,9 +50,35 @@ export type BarbershopPlan =
 
 export const BarbershopPlan = {
   trial: "trial",
+  base: "base",
+  medio: "medio",
+  super: "super",
   premium: "premium",
+  pending: "pending",
   expired: "expired",
 } as const;
+
+export type BarbershopBookingAvailabilityMode =
+  (typeof BarbershopBookingAvailabilityMode)[keyof typeof BarbershopBookingAvailabilityMode];
+
+export const BarbershopBookingAvailabilityMode = {
+  duration_buffer: "duration_buffer",
+  release_on_complete: "release_on_complete",
+} as const;
+
+export interface BusinessScheduleDay {
+  enabled: boolean;
+  startTime: string;
+  endTime: string;
+}
+
+export type BusinessSchedule = Record<string, BusinessScheduleDay>;
+
+export interface IntakeField {
+  key: string;
+  label: string;
+  type: "text" | "textarea" | "date" | "phone";
+}
 
 export interface Barbershop {
   id: string;
@@ -69,8 +95,21 @@ export interface Barbershop {
   brandPrimary: string;
   /** Accent / dark brand color (hex #RRGGBB) */
   brandAccent: string;
+  /** @minimum 0 */
+  bookingBufferMinutes: number;
+  bookingAvailabilityMode: BarbershopBookingAvailabilityMode;
+  businessSchedule: BusinessSchedule;
+  intakeFields: IntakeField[];
   createdAt: string;
 }
+
+export type UpdateBarbershopInputBookingAvailabilityMode =
+  (typeof UpdateBarbershopInputBookingAvailabilityMode)[keyof typeof UpdateBarbershopInputBookingAvailabilityMode];
+
+export const UpdateBarbershopInputBookingAvailabilityMode = {
+  duration_buffer: "duration_buffer",
+  release_on_complete: "release_on_complete",
+} as const;
 
 export interface UpdateBarbershopInput {
   /** @minLength 1 */
@@ -87,6 +126,11 @@ export interface UpdateBarbershopInput {
    * @pattern ^#[0-9A-Fa-f]{6}$
    */
   brandAccent?: string;
+  /** @minimum 0 */
+  bookingBufferMinutes?: number;
+  bookingAvailabilityMode?: UpdateBarbershopInputBookingAvailabilityMode;
+  businessSchedule?: BusinessSchedule;
+  intakeFields?: IntakeField[];
 }
 
 export interface BarbershopLookup {
@@ -121,7 +165,11 @@ export type PlanStatusPlan =
 
 export const PlanStatusPlan = {
   trial: "trial",
+  base: "base",
+  medio: "medio",
+  super: "super",
   premium: "premium",
+  pending: "pending",
   expired: "expired",
 } as const;
 
@@ -130,6 +178,9 @@ export interface PlanStatus {
   trialDaysLeft: number;
   isActive: boolean;
   isPremium: boolean;
+  isPaid: boolean;
+  planName: string;
+  planPrice: string | null;
   trialEndsAt: string;
 }
 

@@ -5,6 +5,8 @@
  * Marcaê API
  * OpenAPI spec version: 0.1.0
  */
+import type { UpdateBarbershopInputBookingAvailabilityMode } from "./updateBarbershopInputBookingAvailabilityMode";
+import type { BusinessSchedule, IntakeField } from "./barbershop";
 
 export interface UpdateBarbershopInput {
   /** @minLength 1 */
@@ -21,4 +23,9 @@ export interface UpdateBarbershopInput {
    * @pattern ^#[0-9A-Fa-f]{6}$
    */
   brandAccent?: string;
+  /** @minimum 0 */
+  bookingBufferMinutes?: number;
+  bookingAvailabilityMode?: UpdateBarbershopInputBookingAvailabilityMode;
+  businessSchedule?: BusinessSchedule;
+  intakeFields?: IntakeField[];
 }

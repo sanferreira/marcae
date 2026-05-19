@@ -11,6 +11,10 @@ export type PlanStatusPlan =
 
 export const PlanStatusPlan = {
   trial: "trial",
+  base: "base",
+  medio: "medio",
+  super: "super",
   premium: "premium",
+  pending: "pending",
   expired: "expired",
 } as const;

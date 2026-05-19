@@ -1,5 +1,5 @@
 import { Feather } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { usePathname, useRouter } from "expo-router";
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useAuth } from "@/contexts/AuthContext";
@@ -11,18 +11,22 @@ import { useColors } from "@/hooks/useColors";
  */
 export function TrialBanner() {
   const router = useRouter();
+  const pathname = usePathname();
   const colors = useColors();
   const { planStatus, user } = useAuth();
 
   if (!user || planStatus.plan !== "trial") return null;
+  if (pathname === "/upgrade") return null;
 
   const days = planStatus.trialDaysLeft;
   const isAdmin = user.role === "admin";
   const label = days <= 0
     ? "Seu período gratuito acabou"
-    : `Teste grátis: ${days} ${days === 1 ? "dia restante" : "dias restantes"}`;
+    : isAdmin
+      ? `Teste grátis: ${days} ${days === 1 ? "dia restante" : "dias restantes"} · depois assine para manter acesso`
+      : `Estabelecimento em teste: ${days} ${days === 1 ? "dia restante" : "dias restantes"}`;
   const cta = isAdmin
-    ? (days <= 0 ? "Assinar agora" : "Assinar Premium")
+    ? (days <= 0 ? "Assinar agora" : "Escolher plano")
     : null;
 
   const onPress = () => { if (isAdmin) router.push("/upgrade" as never); };

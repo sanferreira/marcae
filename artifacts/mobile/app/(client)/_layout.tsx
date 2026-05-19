@@ -5,7 +5,7 @@ import { Icon, Label, NativeTabs } from "expo-router/unstable-native-tabs";
 import { SymbolView } from "expo-symbols";
 import { Feather } from "@expo/vector-icons";
 import React from "react";
-import { ActivityIndicator, Platform, StyleSheet, Text, TouchableOpacity, View, useColorScheme } from "react-native";
+import { ActivityIndicator, Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
@@ -21,6 +21,14 @@ function NativeTabLayout() {
         <Icon sf={{ default: "calendar", selected: "calendar.badge.checkmark" }} />
         <Label>Agenda</Label>
       </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="products">
+        <Icon sf={{ default: "bag", selected: "bag.fill" }} />
+        <Label>Produtos</Label>
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="orders">
+        <Icon sf={{ default: "list.bullet.clipboard", selected: "list.bullet.clipboard.fill" }} />
+        <Label>Pedidos</Label>
+      </NativeTabs.Trigger>
       <NativeTabs.Trigger name="loyalty">
         <Icon sf={{ default: "star", selected: "star.fill" }} />
         <Label>Fidelidade</Label>
@@ -35,7 +43,6 @@ function NativeTabLayout() {
 
 function ClassicTabLayout() {
   const colors = useColors();
-  const isDark = useColorScheme() === "dark";
   const isIOS = Platform.OS === "ios";
   const isWeb = Platform.OS === "web";
 
@@ -57,7 +64,7 @@ function ClassicTabLayout() {
           isIOS ? (
             <BlurView
               intensity={100}
-              tint={isDark ? "dark" : "light"}
+              tint="light"
               style={StyleSheet.absoluteFill}
             />
           ) : isWeb ? (
@@ -86,6 +93,30 @@ function ClassicTabLayout() {
               <SymbolView name="calendar" tintColor={color} size={22} />
             ) : (
               <Feather name="calendar" size={22} color={color} />
+            ),
+        }}
+      />
+      <Tabs.Screen
+        name="products"
+        options={{
+          title: "Produtos",
+          tabBarIcon: ({ color }) =>
+            isIOS ? (
+              <SymbolView name="bag" tintColor={color} size={22} />
+            ) : (
+              <Feather name="shopping-bag" size={22} color={color} />
+            ),
+        }}
+      />
+      <Tabs.Screen
+        name="orders"
+        options={{
+          title: "Pedidos",
+          tabBarIcon: ({ color }) =>
+            isIOS ? (
+              <SymbolView name="list.bullet.clipboard" tintColor={color} size={22} />
+            ) : (
+              <Feather name="clipboard" size={22} color={color} />
             ),
         }}
       />
@@ -153,7 +184,7 @@ export default function ClientTabLayout() {
   }
   if (!user) return <Redirect href={"/(auth)/login" as any} />;
   if (user.role !== "client") return <Redirect href={"/" as any} />;
-  if (planStatus.plan === "expired") return <ShopPausedGate />;
+  if (!planStatus.isActive) return <ShopPausedGate />;
   if (isLiquidGlassAvailable()) return <NativeTabLayout />;
   return <ClassicTabLayout />;
 }

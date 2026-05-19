@@ -56,6 +56,18 @@ export const LoginBody = zod.object({
   password: zod.string().min(1),
 });
 
+export const loginResponseBarbershopBookingBufferMinutesMin = 0;
+const BusinessScheduleSchema = zod.record(zod.object({
+  enabled: zod.boolean(),
+  startTime: zod.string(),
+  endTime: zod.string(),
+}));
+const IntakeFieldSchema = zod.object({
+  key: zod.string(),
+  label: zod.string(),
+  type: zod.enum(["text", "textarea", "date", "phone"]),
+});
+
 export const LoginResponse = zod.object({
   token: zod.string(),
   user: zod.object({
@@ -77,20 +89,48 @@ export const LoginResponse = zod.object({
     ownerEmail: zod.string(),
     phone: zod.string().nullish(),
     address: zod.string().nullish(),
-    plan: zod.enum(["trial", "premium", "expired"]),
+    plan: zod.enum([
+      "trial",
+      "base",
+      "medio",
+      "super",
+      "premium",
+      "pending",
+      "expired",
+    ]),
     trialEndsAt: zod.coerce.date(),
     subscriptionRenewsAt: zod.coerce.date().nullish(),
     brandPrimary: zod.string().describe("Primary brand color (hex #RRGGBB)"),
     brandAccent: zod
       .string()
       .describe("Accent \/ dark brand color (hex #RRGGBB)"),
+    bookingBufferMinutes: zod
+      .number()
+      .min(loginResponseBarbershopBookingBufferMinutesMin),
+    bookingAvailabilityMode: zod.enum([
+      "duration_buffer",
+      "release_on_complete",
+    ]),
+    businessSchedule: BusinessScheduleSchema,
+    intakeFields: zod.array(IntakeFieldSchema),
     createdAt: zod.coerce.date(),
   }),
   planStatus: zod.object({
-    plan: zod.enum(["trial", "premium", "expired"]),
+    plan: zod.enum([
+      "trial",
+      "base",
+      "medio",
+      "super",
+      "premium",
+      "pending",
+      "expired",
+    ]),
     trialDaysLeft: zod.number(),
     isActive: zod.boolean(),
     isPremium: zod.boolean(),
+    isPaid: zod.boolean(),
+    planName: zod.string(),
+    planPrice: zod.string().nullable(),
     trialEndsAt: zod.coerce.date(),
   }),
 });
@@ -98,6 +138,8 @@ export const LoginResponse = zod.object({
 /**
  * @summary Get current authenticated user + barbershop + plan status
  */
+export const getMeResponseBarbershopBookingBufferMinutesMin = 0;
+
 export const GetMeResponse = zod.object({
   token: zod.string(),
   user: zod.object({
@@ -119,20 +161,48 @@ export const GetMeResponse = zod.object({
     ownerEmail: zod.string(),
     phone: zod.string().nullish(),
     address: zod.string().nullish(),
-    plan: zod.enum(["trial", "premium", "expired"]),
+    plan: zod.enum([
+      "trial",
+      "base",
+      "medio",
+      "super",
+      "premium",
+      "pending",
+      "expired",
+    ]),
     trialEndsAt: zod.coerce.date(),
     subscriptionRenewsAt: zod.coerce.date().nullish(),
     brandPrimary: zod.string().describe("Primary brand color (hex #RRGGBB)"),
     brandAccent: zod
       .string()
       .describe("Accent \/ dark brand color (hex #RRGGBB)"),
+    bookingBufferMinutes: zod
+      .number()
+      .min(getMeResponseBarbershopBookingBufferMinutesMin),
+    bookingAvailabilityMode: zod.enum([
+      "duration_buffer",
+      "release_on_complete",
+    ]),
+    businessSchedule: BusinessScheduleSchema,
+    intakeFields: zod.array(IntakeFieldSchema),
     createdAt: zod.coerce.date(),
   }),
   planStatus: zod.object({
-    plan: zod.enum(["trial", "premium", "expired"]),
+    plan: zod.enum([
+      "trial",
+      "base",
+      "medio",
+      "super",
+      "premium",
+      "pending",
+      "expired",
+    ]),
     trialDaysLeft: zod.number(),
     isActive: zod.boolean(),
     isPremium: zod.boolean(),
+    isPaid: zod.boolean(),
+    planName: zod.string(),
+    planPrice: zod.string().nullable(),
     trialEndsAt: zod.coerce.date(),
   }),
 });
@@ -147,6 +217,7 @@ export const updateBarbershopSettingsBodyBrandPrimaryRegExp = new RegExp(
 export const updateBarbershopSettingsBodyBrandAccentRegExp = new RegExp(
   "^#[0-9A-Fa-f]{6}$",
 );
+export const updateBarbershopSettingsBodyBookingBufferMinutesMin = 0;
 
 export const UpdateBarbershopSettingsBody = zod.object({
   name: zod.string().min(1).optional(),
@@ -162,7 +233,18 @@ export const UpdateBarbershopSettingsBody = zod.object({
     .regex(updateBarbershopSettingsBodyBrandAccentRegExp)
     .optional()
     .describe("Accent \/ dark brand color (hex #RRGGBB)"),
+  bookingBufferMinutes: zod
+    .number()
+    .min(updateBarbershopSettingsBodyBookingBufferMinutesMin)
+    .optional(),
+  bookingAvailabilityMode: zod
+    .enum(["duration_buffer", "release_on_complete"])
+    .optional(),
+  businessSchedule: BusinessScheduleSchema.optional(),
+  intakeFields: zod.array(IntakeFieldSchema).optional(),
 });
+
+export const updateBarbershopSettingsResponseBookingBufferMinutesMin = 0;
 
 export const UpdateBarbershopSettingsResponse = zod.object({
   id: zod.string().uuid(),
@@ -172,13 +254,27 @@ export const UpdateBarbershopSettingsResponse = zod.object({
   ownerEmail: zod.string(),
   phone: zod.string().nullish(),
   address: zod.string().nullish(),
-  plan: zod.enum(["trial", "premium", "expired"]),
+  plan: zod.enum([
+    "trial",
+    "base",
+    "medio",
+    "super",
+    "premium",
+    "pending",
+    "expired",
+  ]),
   trialEndsAt: zod.coerce.date(),
   subscriptionRenewsAt: zod.coerce.date().nullish(),
   brandPrimary: zod.string().describe("Primary brand color (hex #RRGGBB)"),
   brandAccent: zod
     .string()
     .describe("Accent \/ dark brand color (hex #RRGGBB)"),
+  bookingBufferMinutes: zod
+    .number()
+    .min(updateBarbershopSettingsResponseBookingBufferMinutesMin),
+  bookingAvailabilityMode: zod.enum(["duration_buffer", "release_on_complete"]),
+  businessSchedule: BusinessScheduleSchema,
+  intakeFields: zod.array(IntakeFieldSchema),
   createdAt: zod.coerce.date(),
 });
 

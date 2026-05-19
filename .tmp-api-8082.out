@@ -1,0 +1,301 @@
+
+> @workspace/api-server@0.0.0 dev D:\Projetos\Service-Provider\artifacts\api-server
+> node --env-file=.env ./build.mjs && node --env-file=.env --enable-source-maps ./dist/index.mjs
+
+[13:01:59.401] [32mINFO[39m (43128): [36mServer listening[39m
+    [35mport[39m: 8082
+{ autoExpandLists: undefined, stripeApiVersion: undefined } StripeSync initialized
+[13:01:59.817] [32mINFO[39m (43128): [36musing STRIPE_WEBHOOK_SECRET from environment[39m
+[13:02:15.153] [32mINFO[39m (43128): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 1,
+      "method": "GET",
+      "url": "/api/healthz"
+    }
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 6
+[14:27:48.520] [32mINFO[39m (43128): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 2,
+      "method": "OPTIONS",
+      "url": "/api/establishment/export"
+    }
+    [35mres[39m: {
+      "statusCode": 204
+    }
+    [35mresponseTime[39m: 1
+[14:27:48.582] [32mINFO[39m (43128): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 3,
+      "method": "GET",
+      "url": "/api/establishment/export"
+    }
+    [35mres[39m: {
+      "statusCode": 200
+    }
+    [35mresponseTime[39m: 60
+[14:32:47.534] [32mINFO[39m (43128): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 4,
+      "method": "OPTIONS",
+      "url": "/api/services"
+    }
+    [35mres[39m: {
+      "statusCode": 204
+    }
+    [35mresponseTime[39m: 1
+[14:32:47.535] [32mINFO[39m (43128): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 5,
+      "method": "OPTIONS",
+      "url": "/api/categories"
+    }
+    [35mres[39m: {
+      "statusCode": 204
+    }
+    [35mresponseTime[39m: 1
+[14:32:47.536] [32mINFO[39m (43128): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 6,
+      "method": "OPTIONS",
+      "url": "/api/products"
+    }
+    [35mres[39m: {
+      "statusCode": 204
+    }
+    [35mresponseTime[39m: 1
+[14:32:47.536] [32mINFO[39m (43128): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 7,
+      "method": "OPTIONS",
+      "url": "/api/professionals"
+    }
+    [35mres[39m: {
+      "statusCode": 204
+    }
+    [35mresponseTime[39m: 0
+[14:32:47.537] [32mINFO[39m (43128): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 8,
+      "method": "OPTIONS",
+      "url": "/api/clients"
+    }
+    [35mres[39m: {
+      "statusCode": 204
+    }
+    [35mresponseTime[39m: 0
+[14:32:47.537] [32mINFO[39m (43128): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 9,
+      "method": "OPTIONS",
+      "url": "/api/appointments"
+    }
+    [35mres[39m: {
+      "statusCode": 204
+    }
+    [35mresponseTime[39m: 0
+[14:32:47.604] [32mINFO[39m (43128): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 10,
+      "method": "OPTIONS",
+      "url": "/api/service-packages"
+    }
+    [35mres[39m: {
+      "statusCode": 204
+    }
+    [35mresponseTime[39m: 0
+[14:32:47.605] [32mINFO[39m (43128): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 11,
+      "method": "OPTIONS",
+      "url": "/api/client-packages"
+    }
+    [35mres[39m: {
+      "statusCode": 204
+    }
+    [35mresponseTime[39m: 0
+[14:32:47.606] [32mINFO[39m (43128): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 12,
+      "method": "OPTIONS",
+      "url": "/api/product-orders"
+    }
+    [35mres[39m: {
+      "statusCode": 204
+    }
+    [35mresponseTime[39m: 1
+[14:32:47.606] [32mINFO[39m (43128): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 13,
+      "method": "OPTIONS",
+      "url": "/api/cash-entries"
+    }
+    [35mres[39m: {
+      "statusCode": 204
+    }
+    [35mresponseTime[39m: 0
+[14:32:47.607] [32mINFO[39m (43128): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 14,
+      "method": "OPTIONS",
+      "url": "/api/auth/me"
+    }
+    [35mres[39m: {
+      "statusCode": 204
+    }
+    [35mresponseTime[39m: 0
+[14:32:47.608] [32mINFO[39m (43128): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 15,
+      "method": "OPTIONS",
+      "url": "/api/loyalty/settings"
+    }
+    [35mres[39m: {
+      "statusCode": 204
+    }
+    [35mresponseTime[39m: 0
+[14:32:47.654] [32mINFO[39m (43128): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 16,
+      "method": "OPTIONS",
+      "url": "/api/employees"
+    }
+    [35mres[39m: {
+      "statusCode": 204
+    }
+    [35mresponseTime[39m: 0
+[14:32:47.690] [32mINFO[39m (43128): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 17,
+      "method": "GET",
+      "url": "/api/services"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 33
+[14:32:47.690] [32mINFO[39m (43128): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 19,
+      "method": "GET",
+      "url": "/api/products"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 30
+[14:32:47.697] [32mINFO[39m (43128): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 20,
+      "method": "GET",
+      "url": "/api/professionals"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 36
+[14:32:47.698] [32mINFO[39m (43128): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 21,
+      "method": "GET",
+      "url": "/api/clients"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 35
+[14:32:47.699] [32mINFO[39m (43128): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 22,
+      "method": "GET",
+      "url": "/api/appointments"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 35
+[14:32:47.705] [32mINFO[39m (43128): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 23,
+      "method": "GET",
+      "url": "/api/service-packages"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 12
+[14:32:47.707] [32mINFO[39m (43128): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 24,
+      "method": "GET",
+      "url": "/api/client-packages"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 12
+[14:32:47.713] [32mINFO[39m (43128): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 27,
+      "method": "GET",
+      "url": "/api/auth/me"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 9
+[14:32:47.716] [32mINFO[39m (43128): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 26,
+      "method": "GET",
+      "url": "/api/cash-entries"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 14
+[14:32:47.719] [32mINFO[39m (43128): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 25,
+      "method": "GET",
+      "url": "/api/product-orders"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 18
+[14:32:47.720] [32mINFO[39m (43128): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 28,
+      "method": "GET",
+      "url": "/api/loyalty/settings"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 7
+[14:32:47.723] [32mINFO[39m (43128): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 29,
+      "method": "GET",
+      "url": "/api/employees"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 9
+[14:32:47.731] [32mINFO[39m (43128): [36mrequest completed[39m
+    [35mreq[39m: {
+      "id": 18,
+      "method": "GET",
+      "url": "/api/categories"
+    }
+    [35mres[39m: {
+      "statusCode": 304
+    }
+    [35mresponseTime[39m: 72
+D:\Projetos\Service-Provider\artifacts\api-server:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @workspace/api-server@0.0.0 dev: `node --env-file=.env ./build.mjs && node --env-file=.env --enable-source-maps ./dist/index.mjs`
+Exit status 4294967295

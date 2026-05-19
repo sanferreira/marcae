@@ -12,5 +12,8 @@ export interface PlanStatus {
   trialDaysLeft: number;
   isActive: boolean;
   isPremium: boolean;
+  isPaid: boolean;
+  planName: string;
+  planPrice: string | null;
   trialEndsAt: Date;
 }

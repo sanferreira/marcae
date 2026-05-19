@@ -1,14 +1,15 @@
 import { BlurView } from "expo-blur";
 import { isLiquidGlassAvailable } from "expo-glass-effect";
-import { Redirect, Tabs } from "expo-router";
+import { Redirect, Tabs, router } from "expo-router";
 import { Icon, Label, NativeTabs } from "expo-router/unstable-native-tabs";
 import { SymbolView } from "expo-symbols";
 import { Feather } from "@expo/vector-icons";
 import React from "react";
-import { ActivityIndicator, Platform, StyleSheet, Text, TouchableOpacity, View, useColorScheme } from "react-native";
+import { ActivityIndicator, Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
+import { BASE_PLAN_PRICE_LABEL, PAYMENT_PENDING_PLAN } from "@/constants/plans";
 
 function NativeTabLayout() {
   return (
@@ -30,7 +31,7 @@ function NativeTabLayout() {
         <Label>Financeiro</Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="services">
-        <Icon sf={{ default: "scissors", selected: "scissors.fill" }} />
+        <Icon sf={{ default: "scissors", selected: "scissors" }} />
         <Label>Serviços</Label>
       </NativeTabs.Trigger>
     </NativeTabs>
@@ -39,7 +40,6 @@ function NativeTabLayout() {
 
 function ClassicTabLayout() {
   const colors = useColors();
-  const isDark = useColorScheme() === "dark";
   const isIOS = Platform.OS === "ios";
   const isWeb = Platform.OS === "web";
 
@@ -61,7 +61,7 @@ function ClassicTabLayout() {
           isIOS ? (
             <BlurView
               intensity={100}
-              tint={isDark ? "dark" : "light"}
+              tint="light"
               style={StyleSheet.absoluteFill}
             />
           ) : isWeb ? (
@@ -135,22 +135,23 @@ function ClassicTabLayout() {
 
 function ExpiredPlanGate({ canUpgrade }: { canUpgrade: boolean }) {
   const colors = useColors();
-  const { logout, barbershop, upgradeToPremium } = useAuth();
+  const { logout, barbershop, planStatus } = useAuth();
+  const isPending = planStatus.plan === PAYMENT_PENDING_PLAN;
   const handleUpgrade = () => {
-    upgradeToPremium();
+    router.push("/upgrade" as any);
   };
   return (
     <View style={[gateStyles.container, { backgroundColor: colors.background }]}>
       <View style={[gateStyles.card, { backgroundColor: colors.card, borderColor: colors.destructive + "55" }]}>
         <Feather name="alert-circle" size={36} color={colors.destructive} />
-        <Text style={[gateStyles.title, { color: colors.foreground }]}>Plano expirado</Text>
+        <Text style={[gateStyles.title, { color: colors.foreground }]}>{isPending ? "Pagamento pendente" : "Plano expirado"}</Text>
         <Text style={[gateStyles.msg, { color: colors.mutedForeground }]}>
           O acesso de {barbershop?.name ?? "seu estabelecimento"} foi pausado.{"\n"}
-          {canUpgrade ? "Reative a assinatura por R$59/mês para voltar a operar." : "Peça ao administrador para reativar a assinatura."}
+          {canUpgrade ? `Reative a partir de ${BASE_PLAN_PRICE_LABEL}/mes para voltar a operar.` : "Peça ao administrador para reativar a assinatura."}
         </Text>
         {canUpgrade && (
           <TouchableOpacity style={[gateStyles.btn, { backgroundColor: colors.gold, borderColor: colors.gold }]} onPress={handleUpgrade}>
-            <Text style={[gateStyles.btnText, { color: "#0C0C0C" }]}>Assinar Premium</Text>
+            <Text style={[gateStyles.btnText, { color: colors.goldForeground }]}>Escolher plano</Text>
           </TouchableOpacity>
         )}
         <TouchableOpacity style={[gateStyles.btn, { borderColor: colors.border }]} onPress={logout}>
@@ -180,7 +181,7 @@ export default function AdminTabLayout() {
   if (user.role !== "admin") {
     return <Redirect href={"/" as any} />;
   }
-  if (planStatus.plan === "expired") return <ExpiredPlanGate canUpgrade={true} />;
+  if (!planStatus.isActive) return <ExpiredPlanGate canUpgrade={true} />;
   if (isLiquidGlassAvailable()) return <NativeTabLayout />;
   return <ClassicTabLayout />;
 }

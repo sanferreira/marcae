@@ -14,6 +14,7 @@ import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { AppAlertProvider } from "@/components/AppAlert";
 import { SubscriptionGate } from "@/components/SubscriptionGate";
 import { TrialBanner } from "@/components/TrialBanner";
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -36,6 +37,7 @@ function RootLayoutNav() {
         <Stack.Screen name="(employee)" />
         <Stack.Screen name="(admin)" />
         <Stack.Screen name="upgrade" />
+        <Stack.Screen name="legal" />
         <Stack.Screen name="admin-settings" />
         <Stack.Screen name="+not-found" />
       </Stack>
@@ -67,9 +69,11 @@ export default function RootLayout() {
             <KeyboardProvider>
               <AuthProvider>
                 <BrandColorsProvider>
-                  <DataProvider>
-                    <RootLayoutNav />
-                  </DataProvider>
+                  <AppAlertProvider>
+                    <DataProvider>
+                      <RootLayoutNav />
+                    </DataProvider>
+                  </AppAlertProvider>
                 </BrandColorsProvider>
               </AuthProvider>
             </KeyboardProvider>

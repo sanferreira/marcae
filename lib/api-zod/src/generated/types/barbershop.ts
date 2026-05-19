@@ -5,7 +5,22 @@
  * Marcaê API
  * OpenAPI spec version: 0.1.0
  */
+import type { BarbershopBookingAvailabilityMode } from "./barbershopBookingAvailabilityMode";
 import type { BarbershopPlan } from "./barbershopPlan";
+
+export interface BusinessScheduleDay {
+  enabled: boolean;
+  startTime: string;
+  endTime: string;
+}
+
+export type BusinessSchedule = Record<string, BusinessScheduleDay>;
+
+export interface IntakeField {
+  key: string;
+  label: string;
+  type: "text" | "textarea" | "date" | "phone";
+}
 
 export interface Barbershop {
   id: string;
@@ -22,5 +37,10 @@ export interface Barbershop {
   brandPrimary: string;
   /** Accent / dark brand color (hex #RRGGBB) */
   brandAccent: string;
+  /** @minimum 0 */
+  bookingBufferMinutes: number;
+  bookingAvailabilityMode: BarbershopBookingAvailabilityMode;
+  businessSchedule: BusinessSchedule;
+  intakeFields: IntakeField[];
   createdAt: Date;
 }

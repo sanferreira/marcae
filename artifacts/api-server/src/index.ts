@@ -1,14 +1,8 @@
 import app from "./app";
+import { startAppointmentReminderWorker } from "./lib/appointmentReminders";
 import { logger } from "./lib/logger";
 
-const rawPort = process.env["PORT"];
-
-if (!rawPort) {
-  throw new Error(
-    "PORT environment variable is required but was not provided.",
-  );
-}
-
+const rawPort = process.env["PORT"] ?? "8082";
 const port = Number(rawPort);
 
 if (Number.isNaN(port) || port <= 0) {
@@ -22,4 +16,5 @@ app.listen(port, (err) => {
   }
 
   logger.info({ port }, "Server listening");
+  startAppointmentReminderWorker();
 });

@@ -57,7 +57,7 @@ export function LoyaltyProgressCard({ loyalty }: Props) {
               ]}
             >
               {i < loyalty.currentPoints && (
-                <Feather name="check" size={8} color="#0C0C0C" />
+                <Feather name="check" size={8} color={colors.primaryForeground} />
               )}
             </View>
           ))}

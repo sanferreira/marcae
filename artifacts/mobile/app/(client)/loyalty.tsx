@@ -10,9 +10,11 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { LoyaltyProgressCard } from "@/components/LoyaltyProgressCard";
+import { PaginationBar } from "@/components/PaginationBar";
 import { useAuth } from "@/contexts/AuthContext";
 import { useData } from "@/contexts/DataContext";
 import { useColors } from "@/hooks/useColors";
+import { usePagination } from "@/hooks/usePagination";
 
 export default function LoyaltyScreen() {
   const colors = useColors();
@@ -20,10 +22,11 @@ export default function LoyaltyScreen() {
   const { user } = useAuth();
   const { getClientLoyalty } = useData();
 
-  const topPad = Platform.OS === "web" ? 67 : insets.top;
+  const topPad = insets.top;
   const botPad = Platform.OS === "web" ? 34 : insets.bottom;
 
   const loyalty = getClientLoyalty(user?.clientId ?? user?.id ?? "");
+  const historyPage = usePagination(loyalty.history, 10);
 
   const TYPE_CONFIG = {
     earned: { icon: "plus-circle" as const, color: "#22C55E", label: "Ganhou" },
@@ -34,7 +37,7 @@ export default function LoyaltyScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <FlatList
-        data={loyalty.history}
+        data={historyPage.data}
         keyExtractor={(item) => item.id}
         contentContainerStyle={[
           styles.content,
@@ -49,7 +52,7 @@ export default function LoyaltyScreen() {
             <View style={[styles.howItWorksCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
               <Text style={[styles.howTitle, { color: colors.foreground }]}>Como funciona?</Text>
               {[
-                { icon: "scissors" as const, text: "A cada serviço concluído, você ganha 1 ponto de fidelidade" },
+                { icon: "scissors" as const, text: "Cada servico concluido soma os pontos configurados pelo estabelecimento" },
                 { icon: "award" as const, text: `Ao atingir ${loyalty.requiredPoints} pontos, você ganha: ${loyalty.benefitDescription}` },
                 { icon: "gift" as const, text: "O benefício é aplicado automaticamente no próximo agendamento" },
               ].map((item, i) => (
@@ -100,6 +103,15 @@ export default function LoyaltyScreen() {
               Seus pontos aparecerão aqui após cada atendimento
             </Text>
           </View>
+        }
+        ListFooterComponent={
+          <PaginationBar
+            page={historyPage.page}
+            totalPages={historyPage.totalPages}
+            totalItems={historyPage.totalItems}
+            pageSize={historyPage.pageSize}
+            onPageChange={historyPage.setPage}
+          />
         }
       />
     </View>

@@ -1,0 +1,17 @@
+{$LANDING_DOMAIN} {
+  encode zstd gzip
+
+  reverse_proxy landing:80
+}
+
+{$APP_DOMAIN} {
+  encode zstd gzip
+
+  handle /api/* {
+    reverse_proxy api:8082
+  }
+
+  handle {
+    reverse_proxy mobile:3000
+  }
+}

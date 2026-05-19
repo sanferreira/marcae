@@ -1,9 +1,24 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Platform } from "react-native";
 
 const TOKEN_KEY = "@barberpro_session_token";
 
-const DOMAIN = process.env.EXPO_PUBLIC_DOMAIN;
-export const API_BASE = DOMAIN ? `https://${DOMAIN}/api` : "/api";
+const RAW_API_URL = process.env.EXPO_PUBLIC_API_URL?.trim();
+const DOMAIN = process.env.EXPO_PUBLIC_DOMAIN?.trim();
+
+function normalizeApiBase(): string {
+  if (RAW_API_URL) {
+    const normalized = RAW_API_URL.replace(/\/+$/, "");
+    if (Platform.OS === "android") {
+      return normalized.replace("://localhost", "://10.0.2.2").replace("://127.0.0.1", "://10.0.2.2");
+    }
+    return normalized;
+  }
+  if (DOMAIN) return `https://${DOMAIN.replace(/^https?:\/\//, "").replace(/\/+$/, "")}/api`;
+  return "/api";
+}
+
+export const API_BASE = normalizeApiBase();
 
 export async function getToken(): Promise<string | null> {
   try { return await AsyncStorage.getItem(TOKEN_KEY); } catch { return null; }
@@ -15,10 +30,9 @@ export async function setToken(token: string | null): Promise<void> {
   } catch { /* ignore */ }
 }
 
-export interface ApiResult<T> { ok: true; data: T } 
+export interface ApiResult<T> { ok: true; data: T }
 export interface ApiError { ok: false; status: number; error: string; code?: string }
 
-/** Listener notified whenever the API returns 402 (subscription required). */
 type Sub402Listener = () => void;
 const sub402Listeners = new Set<Sub402Listener>();
 export function onSubscriptionRequired(fn: Sub402Listener): () => void {
@@ -41,10 +55,14 @@ export async function apiFetch<T>(
       method: opts.method ?? "GET",
       headers,
       body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
-      credentials: "include",
+      credentials: "omit",
     });
   } catch (err) {
-    return { ok: false, status: 0, error: (err as Error).message ?? "Erro de rede" };
+    const message = (err as Error).message ?? "Erro de rede";
+    const offlineMessage = message.toLowerCase().includes("failed to fetch")
+      ? `Nao foi possivel conectar ao servidor (${API_BASE}). Confirme se a API esta rodando.`
+      : message;
+    return { ok: false, status: 0, error: offlineMessage };
   }
   if (res.status === 204) return { ok: true, data: undefined as T };
   let payload: unknown = null;
@@ -54,7 +72,6 @@ export async function apiFetch<T>(
     const err = typeof obj.error === "string" ? (obj.error as string) : `Erro ${res.status}`;
     const code = typeof obj.code === "string" ? (obj.code as string) : undefined;
     if (res.status === 402) {
-      // Notify any subscription gates so the UI can route to /upgrade.
       for (const fn of sub402Listeners) { try { fn(); } catch { /* ignore */ } }
     }
     return { ok: false, status: res.status, error: err, code };

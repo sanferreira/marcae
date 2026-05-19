@@ -12,9 +12,11 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { STATUS_CONFIG } from "@/components/AppointmentCard";
+import { PaginationBar } from "@/components/PaginationBar";
 import { useAuth } from "@/contexts/AuthContext";
 import { useData } from "@/contexts/DataContext";
 import { useColors } from "@/hooks/useColors";
+import { usePagination } from "@/hooks/usePagination";
 
 const DATES = (() => {
   const list: Date[] = [];
@@ -26,6 +28,16 @@ const DATES = (() => {
   return list;
 })();
 
+type StatusFilter = "all" | "pending" | "confirmed" | "completed" | "cancelled";
+
+const STATUS_FILTERS: Array<{ key: StatusFilter; label: string }> = [
+  { key: "all", label: "Todos" },
+  { key: "pending", label: "Pendentes" },
+  { key: "confirmed", label: "Confirmados" },
+  { key: "completed", label: "Concluidos" },
+  { key: "cancelled", label: "Cancelados" },
+];
+
 export default function EmployeeAgendaScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -33,8 +45,9 @@ export default function EmployeeAgendaScreen() {
   const { appointments } = useData();
 
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
 
-  const topPad = Platform.OS === "web" ? 67 : insets.top;
+  const topPad = insets.top;
   const botPad = Platform.OS === "web" ? 34 : insets.bottom;
 
   const profId = user?.professionalId;
@@ -50,6 +63,10 @@ export default function EmployeeAgendaScreen() {
 
   const completed = dayAppointments.filter((a) => a.status === "completed");
   const dayRevenue = completed.reduce((s, a) => s + a.totalPrice, 0);
+  const visibleAppointments = statusFilter === "all"
+    ? dayAppointments
+    : dayAppointments.filter((appointment) => appointment.status === statusFilter);
+  const appointmentsPage = usePagination(visibleAppointments, 8);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -73,17 +90,21 @@ export default function EmployeeAgendaScreen() {
                   backgroundColor: isSelected ? colors.gold : colors.card,
                   borderColor: isSelected ? colors.gold : isToday ? colors.gold + "55" : colors.border,
                 }]}
-                onPress={() => { Haptics.selectionAsync(); setSelectedDate(d); }}
+                onPress={() => {
+                  Haptics.selectionAsync();
+                  setSelectedDate(d);
+                  appointmentsPage.setPage(1);
+                }}
               >
-                <Text style={[styles.dateChipDay, { color: isSelected ? "#0C0C0C" : colors.mutedForeground }]}>
+                <Text style={[styles.dateChipDay, { color: isSelected ? colors.goldForeground : colors.mutedForeground }]}>
                   {d.toLocaleDateString("pt-BR", { weekday: "short" }).replace(".", "").toUpperCase()}
                 </Text>
-                <Text style={[styles.dateChipNum, { color: isSelected ? "#0C0C0C" : colors.foreground }]}>
+                <Text style={[styles.dateChipNum, { color: isSelected ? colors.goldForeground : colors.foreground }]}>
                   {d.getDate()}
                 </Text>
                 {count > 0 && (
-                  <View style={[styles.countDot, { backgroundColor: isSelected ? "#0C0C0C" : colors.gold }]}>
-                    <Text style={[styles.countDotText, { color: isSelected ? colors.gold : "#0C0C0C" }]}>{count}</Text>
+                  <View style={[styles.countDot, { backgroundColor: isSelected ? colors.goldForeground : colors.gold }]}>
+                    <Text style={[styles.countDotText, { color: isSelected ? colors.gold : colors.goldForeground }]}>{count}</Text>
                   </View>
                 )}
               </TouchableOpacity>
@@ -108,7 +129,27 @@ export default function EmployeeAgendaScreen() {
           </View>
         </View>
 
-        {dayAppointments.length === 0 ? (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
+          {STATUS_FILTERS.map((item) => {
+            const selected = statusFilter === item.key;
+            return (
+              <TouchableOpacity
+                key={item.key}
+                style={[styles.filterBtn, { backgroundColor: selected ? colors.gold : colors.card, borderColor: selected ? colors.gold : colors.border }]}
+                onPress={() => {
+                  setStatusFilter(item.key);
+                  appointmentsPage.setPage(1);
+                }}
+              >
+                <Text style={[styles.filterText, { color: selected ? colors.goldForeground : colors.mutedForeground }]}>
+                  {item.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+
+        {visibleAppointments.length === 0 ? (
           <View style={styles.empty}>
             <Feather name="calendar" size={36} color={colors.border} />
             <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
@@ -116,7 +157,7 @@ export default function EmployeeAgendaScreen() {
             </Text>
           </View>
         ) : (
-          dayAppointments.map((apt) => {
+          appointmentsPage.data.map((apt) => {
             const sc = STATUS_CONFIG[apt.status];
             return (
               <View key={apt.id} style={[styles.timelineRow]}>
@@ -147,6 +188,13 @@ export default function EmployeeAgendaScreen() {
             );
           })
         )}
+        <PaginationBar
+          page={appointmentsPage.page}
+          totalPages={appointmentsPage.totalPages}
+          totalItems={appointmentsPage.totalItems}
+          pageSize={appointmentsPage.pageSize}
+          onPageChange={appointmentsPage.setPage}
+        />
       </ScrollView>
     </View>
   );
@@ -167,6 +215,9 @@ const styles = StyleSheet.create({
   dayHeader: { marginBottom: 16 },
   dayTitle: { fontSize: 17, fontFamily: "Inter_700Bold", textTransform: "capitalize" },
   daySub: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 2 },
+  filterRow: { flexDirection: "row", gap: 8, paddingRight: 20, marginBottom: 16 },
+  filterBtn: { minHeight: 34, borderRadius: 999, borderWidth: 1, paddingHorizontal: 12, alignItems: "center", justifyContent: "center" },
+  filterText: { fontSize: 12, fontFamily: "Inter_700Bold" },
   empty: { alignItems: "center", paddingVertical: 50, gap: 10 },
   emptyText: { fontSize: 13, fontFamily: "Inter_400Regular" },
   timelineRow: { flexDirection: "row", gap: 12, marginBottom: 14, alignItems: "stretch" },
