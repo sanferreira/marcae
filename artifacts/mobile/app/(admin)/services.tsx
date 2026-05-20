@@ -560,7 +560,7 @@ export default function ManagementScreen() {
     }
   };
 
-  const confirmDeleteProf = (p: Professional) => confirmDelete("Excluir funcionario", `Excluir "${p.name}"? O login vinculado tambem sera removido.`, async () => {
+  const confirmDeleteProf = (p: Professional) => confirmDelete("Excluir funcionario", `Excluir "${p.name}"? O login vinculado tambem sera removido. Se houver historico de agendamentos, ele sera arquivado para preservar os dados.`, async () => {
     if (deletingProfId) return;
     setDeletingProfId(p.id);
     try {

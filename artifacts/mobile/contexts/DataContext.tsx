@@ -166,7 +166,7 @@ interface DataContextType {
   rescheduleAppointment: (id: string, newDate: string, newTime: string) => Promise<void>;
   updateAppointmentNotes: (id: string, professionalNotes: string) => Promise<void>;
 
-  addClient: (c: Omit<Client, "barbershopId" | "id">) => Promise<void>;
+  addClient: (c: Omit<Client, "barbershopId" | "id">) => Promise<Client>;
   updateClient: (c: Client) => Promise<void>;
   exportClientsCsv: () => Promise<{ filename: string; csv: string }>;
   importClientsCsv: (csv: string) => Promise<{ created: number; skipped: number }>;
@@ -175,7 +175,7 @@ interface DataContextType {
   getClientLoyalty: (clientId: string) => LoyaltyInfo;
   adjustClientLoyalty: (clientId: string, points: number, description: string) => Promise<void>;
   getClientAppointments: (clientId: string) => Appointment[];
-  getAvailableSlots: (date: string, professionalId: string, duration: number) => string[];
+  getAvailableSlots: (date: string, professionalId: string, duration: number, clientIdOverride?: string | null) => string[];
   getProfessionalStats: (professionalId: string) => { completed: number; revenue: number; cancelRate: number; commission: number; occupancyPct: number };
 }
 
@@ -461,6 +461,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       isFreeByLoyalty: apt.isFreeByLoyalty ?? false,
       clientNotes: apt.clientNotes ?? "",
     });
+    knownAppointmentIds.current?.add(created.id);
     await invalidate("appointments", "clients", "clientPackages");
     return created;
   };
@@ -488,13 +489,14 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const addClient: DataContextType["addClient"] = async (c) => {
     // Client users created via /auth/register-client already get a clients row server-side.
     // This only runs for walk-in clients added by admin (not yet wired in UI), so keep best-effort.
-    await post("/clients", {
+    const created = await post<Client>("/clients", {
       name: c.name, phone: c.phone, email: c.email, birthDate: c.birthDate, notes: c.notes,
       allergies: c.allergies ?? "", restrictions: c.restrictions ?? "", preferences: c.preferences ?? "",
       emergencyContact: c.emergencyContact ?? "",
       intakeData: c.intakeData ?? {},
     });
     await invalidate("clients");
+    return created;
   };
   const updateClient: DataContextType["updateClient"] = async (c) => {
     await patch(`/clients/${c.id}`, {
@@ -552,7 +554,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const getClientAppointments: DataContextType["getClientAppointments"] = (clientId) =>
     (appointments.data ?? []).filter((a) => a.clientId === clientId);
 
-  const getAvailableSlots: DataContextType["getAvailableSlots"] = (date, professionalId, duration) => {
+  const getAvailableSlots: DataContextType["getAvailableSlots"] = (date, professionalId, duration, clientIdOverride) => {
     const schedule = professionalSchedules[professionalId] ?? DEFAULT_SCHEDULE;
     const businessSchedule = barbershop?.businessSchedule ?? DEFAULT_SCHEDULE;
     const dayOfWeek = new Date(date + "T12:00:00").getDay();
@@ -565,7 +567,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     if (startMinutes >= endMinutes) return [];
     const effectiveWorkDay = { startTime: minutesToTime(startMinutes), endTime: minutesToTime(endMinutes) };
     const allSlots = generateTimeSlots(effectiveWorkDay.startTime, effectiveWorkDay.endTime, 30);
-    const clientId = user?.role === "client" ? user.clientId : null;
+    const clientId = clientIdOverride ?? (user?.role === "client" ? user.clientId : null);
     const bufferMinutes = barbershop?.bookingBufferMinutes ?? 0;
     const availabilityMode = barbershop?.bookingAvailabilityMode ?? "duration_buffer";
     const relevantAppointments = (appointments.data ?? [])
@@ -578,6 +580,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const workEndMinutes = timeToMinutes(effectiveWorkDay.endTime);
 
     return allSlots.filter((slot) => {
+      const slotDate = new Date(`${date}T${slot}:00`);
+      if (!Number.isNaN(slotDate.getTime()) && slotDate.getTime() <= Date.now()) return false;
       if (timeToMinutes(slot) + duration + bufferMinutes > workEndMinutes) return false;
 
       const professionalConflict = relevantAppointments.some((apt) =>

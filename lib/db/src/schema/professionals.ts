@@ -17,6 +17,7 @@ export const professionalsTable = pgTable("professionals", {
   email: text("email"),
   commissionRate: integer("commission_rate").notNull().default(50),
   schedule: jsonb("schedule").notNull().$type<Record<string, { enabled: boolean; startTime: string; endTime: string }>>(),
+  archivedAt: timestamp("archived_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

@@ -1,5 +1,5 @@
 import { Router, type IRouter, type Request, type Response } from "express";
-import { and, desc, eq, inArray, isNotNull, ne, or } from "drizzle-orm";
+import { and, desc, eq, inArray, isNotNull, isNull, ne, or } from "drizzle-orm";
 import {
   appointmentServicesTable,
   appointmentsTable,
@@ -120,6 +120,7 @@ router.post("/appointments", async (req: Request, res: Response): Promise<void> 
     .where(and(
       eq(professionalsTable.id, parsed.data.professionalId),
       eq(professionalsTable.barbershopId, shop),
+      isNull(professionalsTable.archivedAt),
     ))
     .limit(1);
   if (!profRow) {
@@ -218,6 +219,15 @@ router.post("/appointments", async (req: Request, res: Response): Promise<void> 
     try {
       const serviceNames = parsed.data.services.map((service) => service.name).join(" + ");
       const dateLabel = formatDateBR(parsed.data.date);
+      if (auth.user.role !== "client") {
+        await sendClientAppointmentPush(
+          shop,
+          parsed.data.clientId,
+          "Novo agendamento",
+          `Seu atendimento ${serviceNames} foi marcado com ${parsed.data.professionalName} para ${dateLabel} as ${parsed.data.time}.`,
+          appointment.id,
+        );
+      }
       await sendStaffAppointmentPush(
         shop,
         parsed.data.professionalId,

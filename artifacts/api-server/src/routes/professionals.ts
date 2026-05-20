@@ -1,5 +1,5 @@
 import { Router, type IRouter, type Request, type Response } from "express";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import { appointmentsTable, db, professionalsTable, professionalServicesTable, servicesTable, usersTable } from "@workspace/db";
 import { requireAuth, requireRole } from "../lib/auth";
 import { getPlanLimits } from "../lib/plans";
@@ -48,7 +48,7 @@ async function findProfessionalDuplicate(
   ignoreId?: string,
 ) {
   const rows = await db.select().from(professionalsTable)
-    .where(eq(professionalsTable.barbershopId, shop));
+    .where(and(eq(professionalsTable.barbershopId, shop), isNull(professionalsTable.archivedAt)));
   const email = normalize(data.email);
   const phone = normalizePhone(data.phone);
 
@@ -63,12 +63,13 @@ async function findProfessionalDuplicate(
 router.get("/professionals", async (req: Request, res: Response): Promise<void> => {
   const shop = req.auth!.barbershop.id;
   const rows = await db.select().from(professionalsTable).where(eq(professionalsTable.barbershopId, shop));
-  if (rows.length === 0) {
+  const activeRows = rows.filter((row) => !row.archivedAt);
+  if (activeRows.length === 0) {
     res.json([]);
     return;
   }
 
-  const professionalIds = rows.map((row) => row.id);
+  const professionalIds = activeRows.map((row) => row.id);
   const serviceRows = await db.select().from(professionalServicesTable)
     .where(inArray(professionalServicesTable.professionalId, professionalIds));
   const grouped = new Map<string, string[]>();
@@ -78,7 +79,7 @@ router.get("/professionals", async (req: Request, res: Response): Promise<void> 
     grouped.set(row.professionalId, list);
   }
 
-  res.json(rows.map((row) => serializeProfessional(row, grouped.get(row.id) ?? [])));
+  res.json(activeRows.map((row) => serializeProfessional(row, grouped.get(row.id) ?? [])));
 });
 
 router.post("/professionals", requireRole("admin"), async (req: Request, res: Response): Promise<void> => {
@@ -91,7 +92,7 @@ router.post("/professionals", requireRole("admin"), async (req: Request, res: Re
   const shop = req.auth!.barbershop.id;
   const limits = getPlanLimits(req.auth!.barbershop.plan);
   const existingProfessionals = await db.select({ id: professionalsTable.id }).from(professionalsTable)
-    .where(eq(professionalsTable.barbershopId, shop));
+    .where(and(eq(professionalsTable.barbershopId, shop), isNull(professionalsTable.archivedAt)));
   if (existingProfessionals.length >= limits.professionals) {
     const label = limits.professionals === 1 ? "profissional" : "profissionais";
     res.status(402).json({
@@ -151,7 +152,7 @@ router.patch("/professionals/:id", requireRole("admin"), async (req: Request, re
   }
 
   const [current] = await db.select().from(professionalsTable)
-    .where(and(eq(professionalsTable.id, id), eq(professionalsTable.barbershopId, shop)))
+    .where(and(eq(professionalsTable.id, id), eq(professionalsTable.barbershopId, shop), isNull(professionalsTable.archivedAt)))
     .limit(1);
   if (!current) {
     res.status(404).json({ error: "Profissional nao encontrado." });
@@ -188,7 +189,7 @@ router.patch("/professionals/:id", requireRole("admin"), async (req: Request, re
 
   const [row] = Object.keys(updates).length > 0
     ? await db.update(professionalsTable).set(updates)
-      .where(and(eq(professionalsTable.id, id), eq(professionalsTable.barbershopId, shop))).returning()
+      .where(and(eq(professionalsTable.id, id), eq(professionalsTable.barbershopId, shop), isNull(professionalsTable.archivedAt))).returning()
     : [current];
   if (!row) {
     res.status(404).json({ error: "Profissional nao encontrado." });
@@ -210,7 +211,7 @@ router.delete("/professionals/:id", requireRole("admin"), async (req: Request, r
   const shop = req.auth!.barbershop.id;
 
   const [professional] = await db.select({ id: professionalsTable.id }).from(professionalsTable)
-    .where(and(eq(professionalsTable.id, id), eq(professionalsTable.barbershopId, shop)))
+    .where(and(eq(professionalsTable.id, id), eq(professionalsTable.barbershopId, shop), isNull(professionalsTable.archivedAt)))
     .limit(1);
   if (!professional) {
     res.status(404).json({ error: "Profissional nao encontrado." });
@@ -224,9 +225,16 @@ router.delete("/professionals/:id", requireRole("admin"), async (req: Request, r
     ))
     .limit(1);
   if (appointment) {
-    res.status(409).json({
-      error: "Este profissional possui agendamentos no historico. Para preservar os dados, marque como indisponivel em vez de excluir.",
+    await db.transaction(async (tx) => {
+      await tx.delete(usersTable)
+        .where(and(eq(usersTable.barbershopId, shop), eq(usersTable.role, "employee"), eq(usersTable.professionalId, id)));
+      await tx.delete(professionalServicesTable)
+        .where(eq(professionalServicesTable.professionalId, id));
+      await tx.update(professionalsTable)
+        .set({ isAvailable: false, archivedAt: new Date() })
+        .where(and(eq(professionalsTable.id, id), eq(professionalsTable.barbershopId, shop)));
     });
+    res.json({ archived: true });
     return;
   }
 
@@ -252,7 +260,7 @@ router.patch("/professionals/:id/schedule", requireRole("admin", "employee"), as
 
   const shop = req.auth!.barbershop.id;
   const [row] = await db.update(professionalsTable).set({ schedule: parsed.data })
-    .where(and(eq(professionalsTable.id, id), eq(professionalsTable.barbershopId, shop))).returning();
+    .where(and(eq(professionalsTable.id, id), eq(professionalsTable.barbershopId, shop), isNull(professionalsTable.archivedAt))).returning();
   if (!row) {
     res.status(404).json({ error: "Profissional nao encontrado." });
     return;
