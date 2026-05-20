@@ -50,7 +50,7 @@ import {
 } from "@/lib/masks";
 
 type Tab = "services" | "products" | "orders" | "packages" | "categories" | "team" | "loyalty" | "plan";
-type ManagementGroupKey = "operations" | "sales" | "account";
+type ManagementGroupKey = "operations" | "sales";
 
 const MANAGEMENT_TABS: Tab[] = ["services", "products", "orders", "packages", "categories", "team", "loyalty", "plan"];
 const LIST_TABS: Tab[] = ["services", "products", "orders", "packages", "categories", "team"];
@@ -158,7 +158,6 @@ const TAB_DETAILS: Record<Tab, { label: string; title: string; description: stri
 const MANAGEMENT_GROUPS: Array<{ key: ManagementGroupKey; label: string; tabs: Tab[] }> = [
   { key: "operations", label: "Operação", tabs: ["services", "team", "categories", "loyalty"] },
   { key: "sales", label: "Vendas", tabs: ["products", "orders", "packages"] },
-  { key: "account", label: "Conta", tabs: ["plan"] },
 ];
 
 const confirmDelete = (title: string, message: string, onConfirm: () => Promise<void>) => {

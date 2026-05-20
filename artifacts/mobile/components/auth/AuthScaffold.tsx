@@ -191,8 +191,8 @@ const styles = StyleSheet.create({
     alignSelf: "center",
   },
   logo: {
-    width: 180,
-    height: 70,
+    width: 220,
+    height: 88,
   },
   badge: {
     alignSelf: "flex-start",

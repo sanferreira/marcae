@@ -37,7 +37,9 @@ function appHref(path: string): string {
 const LOGIN_HREF = appHref("/login");
 const REGISTER_SHOP_HREF = appHref("/register-shop");
 const LEGAL_HREF = appHref("/legal");
-const SUPPORT_HREF = import.meta.env.VITE_SUPPORT_URL?.trim() || "#faq";
+const SUPPORT_PHONE_LABEL = "(11) 99133-7921";
+const SUPPORT_HREF = import.meta.env.VITE_SUPPORT_URL?.trim() || "https://wa.me/5511991337921";
+const INSTAGRAM_HREF = "https://instagram.com/marcae.digital";
 
 const NAV = [
   { label: "Recursos", href: "#recursos" },
@@ -272,6 +274,7 @@ export default function Landing() {
         <FinalCta />
       </main>
       <Footer />
+      <FloatingWhatsApp />
     </div>
   );
 }
@@ -825,7 +828,8 @@ function Footer() {
           title="Suporte"
           items={[
             { label: "Dúvidas frequentes", href: "#faq" },
-            { label: "Falar com suporte", href: SUPPORT_HREF },
+            { label: `WhatsApp ${SUPPORT_PHONE_LABEL}`, href: SUPPORT_HREF },
+            { label: "Instagram @marcae.digital", href: INSTAGRAM_HREF },
             { label: "Entrar no sistema", href: LOGIN_HREF },
             { label: "Criar estabelecimento", href: REGISTER_SHOP_HREF },
           ]}
@@ -866,5 +870,20 @@ function FooterCol({ title, items }: { title: string; items: { label: string; hr
         ))}
       </ul>
     </div>
+  );
+}
+
+function FloatingWhatsApp() {
+  return (
+    <a
+      href={SUPPORT_HREF}
+      target="_blank"
+      rel="noreferrer"
+      aria-label={`Falar com suporte pelo WhatsApp ${SUPPORT_PHONE_LABEL}`}
+      className="fixed right-4 bottom-4 md:right-6 md:bottom-6 z-[70] flex h-14 md:h-auto items-center justify-center gap-2 rounded-full bg-[#25D366] px-4 md:px-5 py-0 md:py-3 text-white shadow-[0_14px_34px_rgba(37,211,102,.32)] border border-white/30 transition-transform hover:-translate-y-0.5 hover:bg-[#1FB85A] focus:outline-none focus:ring-4 focus:ring-[#25D366]/25"
+    >
+      <MessageCircle className="w-5 h-5" strokeWidth={2.4} />
+      <span className="hidden sm:inline text-[14px] font-semibold">Falar no WhatsApp</span>
+    </a>
   );
 }

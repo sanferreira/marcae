@@ -34,6 +34,10 @@ function NativeTabLayout() {
         <Icon sf={{ default: "scissors", selected: "scissors" }} />
         <Label>Serviços</Label>
       </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="profile">
+        <Icon sf={{ default: "person", selected: "person.fill" }} />
+        <Label>Perfil</Label>
+      </NativeTabs.Trigger>
     </NativeTabs>
   );
 }
@@ -126,6 +130,18 @@ function ClassicTabLayout() {
               <SymbolView name="scissors" tintColor={color} size={22} />
             ) : (
               <Feather name="scissors" size={22} color={color} />
+            ),
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: "Perfil",
+          tabBarIcon: ({ color }) =>
+            isIOS ? (
+              <SymbolView name="person" tintColor={color} size={22} />
+            ) : (
+              <Feather name="user" size={22} color={color} />
             ),
         }}
       />

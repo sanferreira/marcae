@@ -4,6 +4,7 @@ import React from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { SupportChannels } from "@/components/SupportChannels";
 import { useColors } from "@/hooks/useColors";
 
 const terms = [
@@ -58,6 +59,7 @@ export default function LegalScreen() {
 
         <Section title="Termos de uso" items={terms} colors={colors} />
         <PrivacySection colors={colors} />
+        <SupportChannels />
       </ScrollView>
     </SafeAreaView>
   );

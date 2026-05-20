@@ -16,6 +16,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { SupportChannels } from "@/components/SupportChannels";
 import { useAuth, type BusinessSchedule, type IntakeField, type ScheduleDayKey } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
 import { BASE_PLAN_PRICE_LABEL, PAYMENT_PENDING_PLAN, getPlanDisplayName } from "@/constants/plans";
@@ -572,6 +573,10 @@ export default function AdminSettingsScreen() {
             <Text style={[styles.linkRowText, { color: colors.foreground }]}>Exportar dados do estabelecimento</Text>
             <Feather name="chevron-right" size={14} color={colors.mutedForeground} />
           </Pressable>
+        </Section>
+
+        <Section title="Suporte" colors={colors}>
+          <SupportChannels compact />
         </Section>
 
         <TouchableOpacity

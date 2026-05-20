@@ -18,6 +18,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppAvatar } from "@/components/AppAvatar";
 import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
+import { SupportChannels } from "@/components/SupportChannels";
 import { useAuth } from "@/contexts/AuthContext";
 import { DAY_KEYS, DAY_SHORT, DEFAULT_SCHEDULE, useData } from "@/contexts/DataContext";
 import { useColors } from "@/hooks/useColors";
@@ -260,6 +261,8 @@ export default function EmployeeProfileScreen() {
             Sua escala continua sendo controlada pelo administrador.
           </Text>
         </View>
+
+        <SupportChannels compact />
 
         <TouchableOpacity
           style={[styles.logoutBtn, { borderColor: colors.destructive + "44" }]}

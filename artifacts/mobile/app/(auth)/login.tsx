@@ -188,7 +188,7 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   logo: { alignItems: "center", gap: 8 },
-  logoImage: { width: 220, height: 90, marginBottom: 4 },
+  logoImage: { width: 260, height: 104, marginBottom: 4 },
   logoSub: { fontSize: 13, fontFamily: "Inter_400Regular", textAlign: "center" },
   form: { gap: 12 },
   fieldLabel: { fontSize: 11, fontFamily: "Inter_600SemiBold", marginBottom: 6, letterSpacing: 0.3, textTransform: "uppercase" },

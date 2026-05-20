@@ -323,7 +323,7 @@ export default function HomeScreen() {
             </Text>
           </View>
           <Image
-            source={require("@/assets/images/logo.png")}
+            source={require("@/assets/images/logo-small.png")}
             style={styles.logoMark}
             resizeMode="contain"
           />
@@ -733,8 +733,8 @@ const styles = StyleSheet.create({
   greeting: { fontSize: 14, fontFamily: "Inter_400Regular" },
   subtitle: { fontSize: 22, fontFamily: "Inter_700Bold", marginTop: 2 },
   logoMark: {
-    width: 100,
-    height: 44,
+    width: 124,
+    height: 52,
   },
   bookBanner: {
     flexDirection: "row",
