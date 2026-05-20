@@ -129,14 +129,14 @@ export default function AdminProfileScreen() {
             icon="credit-card"
             title="Plano e pagamento"
             description={`${planLabel}. Planos a partir de ${BASE_PLAN_PRICE_LABEL}/mes.`}
-            onPress={() => router.push("/upgrade" as never)}
+            onPress={() => router.push("/admin-settings/billing" as never)}
             colors={colors}
           />
           <ActionRow
             icon="briefcase"
             title="Dados do estabelecimento"
             description="Nome, telefone, endereco e informacoes exibidas para clientes."
-            onPress={() => router.push("/admin-settings" as never)}
+            onPress={() => router.push("/admin-settings/establishment" as never)}
             colors={colors}
           />
         </Section>
@@ -146,21 +146,21 @@ export default function AdminProfileScreen() {
             icon="sliders"
             title="Cores e marca"
             description="Ajuste cor principal, destaque visual e pre-visualizacao do app."
-            onPress={() => router.push("/admin-settings" as never)}
+            onPress={() => router.push("/admin-settings/brand" as never)}
             colors={colors}
           />
           <ActionRow
             icon="calendar"
             title="Agenda e disponibilidade"
             description="Horario do estabelecimento, intervalo e regra de liberacao da agenda."
-            onPress={() => router.push("/admin-settings" as never)}
+            onPress={() => router.push("/admin-settings/booking" as never)}
             colors={colors}
           />
           <ActionRow
             icon="clipboard"
             title="Ficha do cliente"
             description="Campos personalizados para anamnese, observacoes e nichos diferentes."
-            onPress={() => router.push("/admin-settings" as never)}
+            onPress={() => router.push("/admin-settings/intake" as never)}
             colors={colors}
           />
         </Section>
@@ -170,7 +170,7 @@ export default function AdminProfileScreen() {
             icon="download"
             title="Exportar dados"
             description="Use a tela de configuracoes para baixar cadastros, agenda, financeiro, produtos e pedidos."
-            onPress={() => router.push("/admin-settings" as never)}
+            onPress={() => router.push("/admin-settings/data" as never)}
             colors={colors}
           />
           <SupportChannels compact />
