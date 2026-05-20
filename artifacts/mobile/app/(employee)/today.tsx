@@ -18,6 +18,7 @@ import { AppAvatar } from "@/components/AppAvatar";
 import { useAuth } from "@/contexts/AuthContext";
 import { Appointment, useData } from "@/contexts/DataContext";
 import { useColors } from "@/hooks/useColors";
+import { toLocalDateString } from "@/lib/dates";
 import { typedInputProps } from "@/lib/inputProps";
 
 const PAY_METHODS = ["Dinheiro", "PIX", "Cartão de Débito", "Cartão de Crédito", "Pacote"];
@@ -37,7 +38,7 @@ export default function EmployeeTodayScreen() {
 
   const profId = user?.professionalId;
   const me = useMemo(() => professionals.find((p) => p.id === profId), [professionals, profId]);
-  const today = new Date().toISOString().split("T")[0];
+  const today = toLocalDateString();
 
   const myToday = useMemo(() =>
     appointments

@@ -11,6 +11,7 @@ import {
   servicesTable,
 } from "@workspace/db";
 import { requireAuth, requireRole } from "../lib/auth";
+import { addBusinessDays, toBusinessDateString } from "../lib/dates";
 import { ClientPackageCreate, ServicePackageCreate, ServicePackageUpdate } from "../lib/schemas";
 import { serializeClientPackage, serializeServicePackage } from "../lib/serializers";
 
@@ -18,9 +19,7 @@ const router: IRouter = Router();
 router.use(requireAuth);
 
 function addDaysIso(days: number): string {
-  const date = new Date();
-  date.setDate(date.getDate() + days);
-  return date.toISOString().split("T")[0];
+  return addBusinessDays(days);
 }
 
 router.get("/service-packages", async (req: Request, res: Response): Promise<void> => {
@@ -139,7 +138,7 @@ router.post("/client-packages", requireRole("admin", "employee"), async (req: Re
 
   const paid = parsed.data.pricePaid ?? parseFloat(pkg.price);
   if (paid > 0) {
-    const today = new Date().toISOString().split("T")[0];
+    const today = toBusinessDateString();
     await db.insert(categoriesTable).values({ barbershopId: shop, type: "income", name: "Pacotes" }).onConflictDoNothing();
     await db.insert(cashEntriesTable).values({
       barbershopId: shop,
@@ -183,7 +182,7 @@ export async function consumeClientPackageForAppointment(
     ))
     .orderBy(clientPackagesTable.expiresAt);
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = toBusinessDateString();
   const eligible = packages.find((pkg) =>
     pkg.sessionsUsed < pkg.sessionsTotal &&
     (!pkg.expiresAt || pkg.expiresAt >= today) &&

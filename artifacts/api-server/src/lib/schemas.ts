@@ -55,14 +55,23 @@ export const CategoryCreate = z.object({
   type: z.enum(["service", "product", "income", "expense"]),
 });
 
+const OptionalEmail = z.preprocess(
+  (value) => {
+    if (typeof value !== "string") return value;
+    const trimmed = value.trim().toLowerCase();
+    return trimmed || null;
+  },
+  z.string().email("Informe um email valido.").nullish(),
+);
+
 export const ProfessionalCreate = z.object({
-  name: z.string().min(1),
-  specialty: z.string().default(""),
-  bio: z.string().default(""),
-  avatar: z.string().default(""),
+  name: z.string().trim().min(1),
+  specialty: z.string().trim().default(""),
+  bio: z.string().trim().default(""),
+  avatar: z.string().trim().default(""),
   avatarImage: z.string().nullish(),
-  phone: z.string().nullish(),
-  email: z.string().nullish(),
+  phone: z.string().trim().nullish(),
+  email: OptionalEmail,
   commissionRate: z.number().int().min(0).max(100).default(50),
   isAvailable: z.boolean().default(true),
   rating: z.number().min(0).max(5).default(5),

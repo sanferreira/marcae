@@ -10,6 +10,7 @@ import {
 import { logger } from "./logger";
 import { planHasFeature } from "./plans";
 import { sendExpoPush } from "./push";
+import { addBusinessDays, toBusinessDateString } from "./dates";
 
 const CHECK_EVERY_MS = 5 * 60 * 1000;
 const ONE_DAY_WINDOW_MIN = { min: 23 * 60, max: 25 * 60 };
@@ -17,11 +18,6 @@ const TWO_HOUR_WINDOW_MIN = { min: 90, max: 150 };
 
 let timer: NodeJS.Timeout | null = null;
 let running = false;
-
-function localDate(date = new Date()): string {
-  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
-  return local.toISOString().split("T")[0];
-}
 
 function minutesUntilAppointment(appointment: Appointment, now = new Date()): number | null {
   const startsAt = new Date(`${appointment.date}T${appointment.time}:00`);
@@ -71,10 +67,8 @@ export async function dispatchDueAppointmentReminders(): Promise<void> {
   if (running) return;
   running = true;
   try {
-    const today = localDate();
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const tomorrowStr = localDate(tomorrow);
+    const today = toBusinessDateString();
+    const tomorrowStr = addBusinessDays(1);
 
     const appointments = await db.select().from(appointmentsTable)
       .where(and(

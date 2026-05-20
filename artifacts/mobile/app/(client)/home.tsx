@@ -21,16 +21,13 @@ import { CLIENT_APPOINTMENT_CHANGE_POLICY_NOTICE } from "@/constants/appointment
 import { useAuth } from "@/contexts/AuthContext";
 import { Product, Professional, Service, useData } from "@/contexts/DataContext";
 import { useColors } from "@/hooks/useColors";
+import { addLocalDays, toLocalDateString } from "@/lib/dates";
 import { typedInputProps } from "@/lib/inputProps";
 import { maskIsoDate, maskPhone } from "@/lib/masks";
 
 type BookingStep = "services" | "professional" | "datetime" | "confirm";
 
-const DATES = Array.from({ length: 14 }, (_, i) => {
-  const d = new Date();
-  d.setDate(d.getDate() + i + 1);
-  return d;
-});
+const DATES = Array.from({ length: 14 }, (_, i) => addLocalDays(i + 1));
 
 const JS_DAY_KEYS = ["dom", "seg", "ter", "qua", "qui", "sex", "sab"] as const;
 
@@ -98,7 +95,7 @@ export default function HomeScreen() {
   const totalPrice = selectedServices.reduce((sum, service) => sum + service.price, 0);
   const totalDuration = selectedServices.reduce((sum, service) => sum + service.duration, 0);
 
-  const dateStr = selectedDate.toISOString().split("T")[0];
+  const dateStr = toLocalDateString(selectedDate);
   const availableSlots = selectedProfId && totalDuration > 0
     ? getAvailableSlots(dateStr, selectedProfId, totalDuration)
     : [];
@@ -482,12 +479,12 @@ export default function HomeScreen() {
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.dateScroll}>
                   <View style={styles.dateRow}>
                     {DATES.map((d) => {
-                      const dateValue = d.toISOString().split("T")[0];
+                      const dateValue = toLocalDateString(d);
                       const isSelected = dateValue === dateStr;
                       const works = isWorkingDay(selectedProf, d);
                       return (
                         <TouchableOpacity
-                          key={d.toISOString()}
+                          key={dateValue}
                           style={[
                             styles.dateChip,
                             {

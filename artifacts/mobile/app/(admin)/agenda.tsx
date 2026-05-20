@@ -17,12 +17,9 @@ import { PaginationBar } from "@/components/PaginationBar";
 import { useData } from "@/contexts/DataContext";
 import { useColors } from "@/hooks/useColors";
 import { usePagination } from "@/hooks/usePagination";
+import { addLocalDays, toLocalDateString } from "@/lib/dates";
 
-const DAYS = Array.from({ length: 14 }, (_, i) => {
-  const d = new Date();
-  d.setDate(d.getDate() + i - 3);
-  return d;
-});
+const DAYS = Array.from({ length: 14 }, (_, i) => addLocalDays(i - 3));
 
 const PAY_METHODS = ["PIX", "Dinheiro", "Cartao de Credito", "Cartao de Debito", "Pacote"];
 type StatusFilter = "all" | "pending" | "confirmed" | "completed" | "cancelled";
@@ -43,10 +40,10 @@ export default function AgendaScreen() {
   const topPad = insets.top;
   const botPad = Platform.OS === "web" ? 34 : insets.bottom;
 
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(addLocalDays(0));
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
-  const dateStr = selectedDate.toISOString().split("T")[0];
-  const today = new Date().toISOString().split("T")[0];
+  const dateStr = toLocalDateString(selectedDate);
+  const today = toLocalDateString();
 
   const dayApts = appointments
     .filter((a) => a.date === dateStr)
@@ -111,7 +108,7 @@ export default function AgendaScreen() {
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <View style={styles.dateRow}>
             {DAYS.map((d) => {
-              const ds = d.toISOString().split("T")[0];
+              const ds = toLocalDateString(d);
               const isSelected = ds === dateStr;
               const isToday = ds === today;
               return (

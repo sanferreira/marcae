@@ -14,6 +14,7 @@ import { createSession, destroySession, isCookieAuthEnabled, SESSION_COOKIE } fr
 import { passwordPolicyError, rateLimit } from "../lib/security";
 import { computePlanStatus, serializeBarbershop, serializeUser, slugify } from "../lib/serializers";
 import { requireAuth } from "../lib/auth";
+import { isExpoPushToken } from "../lib/push";
 
 const router: IRouter = Router();
 
@@ -282,7 +283,7 @@ router.get(["/barbershops/:slug/exists", "/establishments/:slug/exists"], async 
 
 router.post("/auth/push-token", requireAuth, async (req: Request, res: Response): Promise<void> => {
   const token = typeof req.body?.token === "string" ? req.body.token.trim() : "";
-  if (token && !token.startsWith("ExponentPushToken")) {
+  if (token && !isExpoPushToken(token)) {
     res.status(400).json({ error: "Token de push inválido." });
     return;
   }

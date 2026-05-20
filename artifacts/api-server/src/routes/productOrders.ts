@@ -13,6 +13,7 @@ import {
   usersTable,
 } from "@workspace/db";
 import { requireAuth, requireRole } from "../lib/auth";
+import { toBusinessDateString } from "../lib/dates";
 import { planHasFeature } from "../lib/plans";
 import { sendExpoPush } from "../lib/push";
 import { ProductOrderCreate, ProductOrderUpdate } from "../lib/schemas";
@@ -225,7 +226,7 @@ router.patch("/product-orders/:id", requireRole("admin", "employee", "client"), 
     }
 
     if (parsed.data.status === "paid" && existing.status !== "paid") {
-      const today = new Date().toISOString().split("T")[0];
+      const today = toBusinessDateString();
       await tx.insert(categoriesTable).values({
         barbershopId: shop,
         type: "income",

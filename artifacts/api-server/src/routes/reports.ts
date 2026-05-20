@@ -9,12 +9,13 @@ import {
 } from "@workspace/db";
 import { requireAuth, requireRole } from "../lib/auth";
 import { requirePlanFeature } from "../lib/billing";
+import { toBusinessDateString } from "../lib/dates";
 
 const router: IRouter = Router();
 router.use(requireAuth);
 
 function dateRange(req: Request) {
-  const today = new Date().toISOString().split("T")[0];
+  const today = toBusinessDateString();
   const monthStart = `${today.slice(0, 7)}-01`;
   const from = typeof req.query.from === "string" && /^\d{4}-\d{2}-\d{2}$/.test(req.query.from) ? req.query.from : monthStart;
   const to = typeof req.query.to === "string" && /^\d{4}-\d{2}-\d{2}$/.test(req.query.to) ? req.query.to : today;

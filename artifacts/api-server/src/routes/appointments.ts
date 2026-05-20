@@ -16,6 +16,7 @@ import {
 } from "@workspace/db";
 
 import { requireAuth } from "../lib/auth";
+import { toBusinessDateString } from "../lib/dates";
 import { planHasFeature } from "../lib/plans";
 import { sendExpoPush } from "../lib/push";
 import { AppointmentCreate, AppointmentUpdate } from "../lib/schemas";
@@ -215,29 +216,16 @@ router.post("/appointments", async (req: Request, res: Response): Promise<void> 
 
   if (planHasFeature(req.auth!.barbershop.plan, "notifications")) void (async () => {
     try {
-      const recipients = await db.select({ token: usersTable.expoPushToken })
-        .from(usersTable)
-        .where(and(
-          eq(usersTable.barbershopId, shop),
-          isNotNull(usersTable.expoPushToken),
-          or(
-            eq(usersTable.role, "admin"),
-            eq(usersTable.professionalId, parsed.data.professionalId),
-          ),
-        ));
-
       const serviceNames = parsed.data.services.map((service) => service.name).join(" + ");
       const dateLabel = formatDateBR(parsed.data.date);
-      const tokens = Array.from(new Set(
-        recipients.map((recipient) => recipient.token).filter((token): token is string => !!token),
-      ));
-
-      await sendExpoPush(tokens.map((to) => ({
-        to,
-        title: "Novo agendamento",
-        body: `${parsed.data.clientName} marcou ${serviceNames} com ${parsed.data.professionalName} em ${dateLabel} as ${parsed.data.time}.`,
-        data: { type: "appointment.created", appointmentId: appointment.id },
-      })));
+      await sendStaffAppointmentPush(
+        shop,
+        parsed.data.professionalId,
+        "Novo agendamento",
+        `${parsed.data.clientName} marcou ${serviceNames} com ${parsed.data.professionalName} em ${dateLabel} as ${parsed.data.time}.`,
+        appointment.id,
+        "appointment.created",
+      );
     } catch (err) {
       req.log.warn({ err, appointmentId: appointment.id }, "failed to dispatch appointment push notifications");
     }
@@ -327,6 +315,33 @@ async function sendClientAppointmentPush(
     title,
     body,
     data: { type: "appointment.updated", appointmentId },
+  })));
+}
+
+async function sendStaffAppointmentPush(
+  shop: string,
+  professionalId: string,
+  title: string,
+  body: string,
+  appointmentId: string,
+  type = "appointment.updated",
+): Promise<void> {
+  const recipients = await db.select({ token: usersTable.expoPushToken })
+    .from(usersTable)
+    .where(and(
+      eq(usersTable.barbershopId, shop),
+      isNotNull(usersTable.expoPushToken),
+      or(
+        eq(usersTable.role, "admin"),
+        eq(usersTable.professionalId, professionalId),
+      ),
+    ));
+  const tokens = Array.from(new Set(recipients.map((recipient) => recipient.token).filter((token): token is string => !!token)));
+  await sendExpoPush(tokens.map((to) => ({
+    to,
+    title,
+    body,
+    data: { type, appointmentId },
   })));
 }
 
@@ -528,7 +543,7 @@ router.patch("/appointments/:id", async (req: Request, res: Response): Promise<v
         const pointsByService = new Map(pointRows.map((service) => [service.id, service.loyaltyPoints]));
         const earnedPoints = Math.max(0, serviceIds.reduce((sum, serviceId) => sum + (pointsByService.get(serviceId) ?? 1), 0));
         const newPoints = Math.min(client.loyaltyPoints + earnedPoints, cap);
-        const today = new Date().toISOString().split("T")[0];
+        const today = toBusinessDateString();
 
         await db.update(clientsTable).set({
           loyaltyPoints: newPoints,
@@ -582,6 +597,35 @@ router.patch("/appointments/:id", async (req: Request, res: Response): Promise<v
     if (notify) {
       void sendClientAppointmentPush(shop, updated.clientId, notify.title, notify.body, updated.id)
         .catch((err) => req.log.warn({ err, appointmentId: updated.id }, "failed to dispatch appointment update push notification"));
+    }
+
+    if (auth.user.role === "client") {
+      const serviceNames = services.map((service) => service.serviceName).join(" + ");
+      let staffNotify: { title: string; body: string; type: string } | null = null;
+      if (isRescheduling) {
+        staffNotify = {
+          title: "Agendamento reagendado",
+          body: `${updated.clientName} reagendou ${serviceNames} com ${updated.professionalName} para ${notifyBodyDate}.`,
+          type: "appointment.rescheduled",
+        };
+      } else if (nextStatus === "cancelled") {
+        staffNotify = {
+          title: "Agendamento cancelado",
+          body: `${updated.clientName} cancelou ${serviceNames} de ${notifyBodyDate}.`,
+          type: "appointment.cancelled",
+        };
+      } else if (nextStatus === "confirmed") {
+        staffNotify = {
+          title: "Presenca confirmada",
+          body: `${updated.clientName} confirmou presenca em ${notifyBodyDate}.`,
+          type: "appointment.confirmed",
+        };
+      }
+
+      if (staffNotify) {
+        void sendStaffAppointmentPush(shop, updated.professionalId, staffNotify.title, staffNotify.body, updated.id, staffNotify.type)
+          .catch((err) => req.log.warn({ err, appointmentId: updated.id }, "failed to dispatch staff appointment update push notification"));
+      }
     }
   }
   res.json(serializeAppointment(updated, services));

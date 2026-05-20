@@ -1,6 +1,6 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { and, eq, inArray } from "drizzle-orm";
-import { db, professionalsTable, professionalServicesTable, servicesTable } from "@workspace/db";
+import { appointmentsTable, db, professionalsTable, professionalServicesTable, servicesTable, usersTable } from "@workspace/db";
 import { requireAuth, requireRole } from "../lib/auth";
 import { getPlanLimits } from "../lib/plans";
 import { ProfessionalCreate, ProfessionalUpdate, ScheduleSchema, DEFAULT_SCHEDULE } from "../lib/schemas";
@@ -32,6 +32,32 @@ async function replaceProfessionalServices(professionalId: string, serviceIds: s
       uniqueIds.map((serviceId) => ({ professionalId, serviceId })),
     );
   }
+}
+
+function normalize(value: string | null | undefined): string {
+  return (value ?? "").trim().toLowerCase();
+}
+
+function normalizePhone(value: string | null | undefined): string {
+  return (value ?? "").replace(/\D/g, "");
+}
+
+async function findProfessionalDuplicate(
+  shop: string,
+  data: { email?: string | null; phone?: string | null },
+  ignoreId?: string,
+) {
+  const rows = await db.select().from(professionalsTable)
+    .where(eq(professionalsTable.barbershopId, shop));
+  const email = normalize(data.email);
+  const phone = normalizePhone(data.phone);
+
+  return rows.find((professional) => {
+    if (professional.id === ignoreId) return false;
+    if (email && normalize(professional.email) === email) return true;
+    if (phone && normalizePhone(professional.phone) === phone) return true;
+    return false;
+  });
 }
 
 router.get("/professionals", async (req: Request, res: Response): Promise<void> => {
@@ -83,6 +109,12 @@ router.post("/professionals", requireRole("admin"), async (req: Request, res: Re
     return;
   }
 
+  const duplicate = await findProfessionalDuplicate(shop, parsed.data);
+  if (duplicate) {
+    res.status(409).json({ error: "Ja existe um profissional com este email ou telefone neste estabelecimento." });
+    return;
+  }
+
   const initials = parsed.data.avatar || parsed.data.name.trim().split(/\s+/).map((n: string) => n[0]).slice(0, 2).join("").toUpperCase();
   const [row] = await db.insert(professionalsTable).values({
     barbershopId: shop,
@@ -118,6 +150,28 @@ router.patch("/professionals/:id", requireRole("admin"), async (req: Request, re
     return;
   }
 
+  const [current] = await db.select().from(professionalsTable)
+    .where(and(eq(professionalsTable.id, id), eq(professionalsTable.barbershopId, shop)))
+    .limit(1);
+  if (!current) {
+    res.status(404).json({ error: "Profissional nao encontrado." });
+    return;
+  }
+
+  const identityChanged =
+    (parsed.data.email !== undefined && normalize(parsed.data.email) !== normalize(current.email)) ||
+    (parsed.data.phone !== undefined && normalizePhone(parsed.data.phone) !== normalizePhone(current.phone));
+  if (identityChanged) {
+    const duplicate = await findProfessionalDuplicate(shop, {
+      email: parsed.data.email !== undefined ? parsed.data.email : current.email,
+      phone: parsed.data.phone !== undefined ? parsed.data.phone : current.phone,
+    }, id);
+    if (duplicate) {
+      res.status(409).json({ error: "Ja existe um profissional com este email ou telefone neste estabelecimento." });
+      return;
+    }
+  }
+
   const updates: Record<string, unknown> = {};
   if (parsed.data.name !== undefined) updates.name = parsed.data.name;
   if (parsed.data.specialty !== undefined) updates.specialty = parsed.data.specialty;
@@ -135,8 +189,7 @@ router.patch("/professionals/:id", requireRole("admin"), async (req: Request, re
   const [row] = Object.keys(updates).length > 0
     ? await db.update(professionalsTable).set(updates)
       .where(and(eq(professionalsTable.id, id), eq(professionalsTable.barbershopId, shop))).returning()
-    : await db.select().from(professionalsTable)
-      .where(and(eq(professionalsTable.id, id), eq(professionalsTable.barbershopId, shop))).limit(1);
+    : [current];
   if (!row) {
     res.status(404).json({ error: "Profissional nao encontrado." });
     return;
@@ -150,6 +203,43 @@ router.patch("/professionals/:id", requireRole("admin"), async (req: Request, re
     : await getProfessionalServiceIds(row.id);
 
   res.json(serializeProfessional(row, serviceIds));
+});
+
+router.delete("/professionals/:id", requireRole("admin"), async (req: Request, res: Response): Promise<void> => {
+  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const shop = req.auth!.barbershop.id;
+
+  const [professional] = await db.select({ id: professionalsTable.id }).from(professionalsTable)
+    .where(and(eq(professionalsTable.id, id), eq(professionalsTable.barbershopId, shop)))
+    .limit(1);
+  if (!professional) {
+    res.status(404).json({ error: "Profissional nao encontrado." });
+    return;
+  }
+
+  const [appointment] = await db.select({ id: appointmentsTable.id }).from(appointmentsTable)
+    .where(and(
+      eq(appointmentsTable.barbershopId, shop),
+      eq(appointmentsTable.professionalId, id),
+    ))
+    .limit(1);
+  if (appointment) {
+    res.status(409).json({
+      error: "Este profissional possui agendamentos no historico. Para preservar os dados, marque como indisponivel em vez de excluir.",
+    });
+    return;
+  }
+
+  await db.transaction(async (tx) => {
+    await tx.delete(usersTable)
+      .where(and(eq(usersTable.barbershopId, shop), eq(usersTable.role, "employee"), eq(usersTable.professionalId, id)));
+    await tx.delete(professionalServicesTable)
+      .where(eq(professionalServicesTable.professionalId, id));
+    await tx.delete(professionalsTable)
+      .where(and(eq(professionalsTable.id, id), eq(professionalsTable.barbershopId, shop)));
+  });
+
+  res.status(204).end();
 });
 
 router.patch("/professionals/:id/schedule", requireRole("admin", "employee"), async (req: Request, res: Response): Promise<void> => {

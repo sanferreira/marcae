@@ -2,6 +2,7 @@ import { Router, type IRouter, type Request, type Response } from "express";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { db, clientsTable, loyaltyMovementsTable, loyaltySettingsTable, productOrdersTable, type Client } from "@workspace/db";
 import { requireAuth, requireRole } from "../lib/auth";
+import { toBusinessDateString } from "../lib/dates";
 import { ClientCreate, ClientUpdate, LoyaltyAdjust, LoyaltySettingsUpdate } from "../lib/schemas";
 import { serializeClient, serializeLoyaltyMovement, serializeLoyaltySettings } from "../lib/serializers";
 
@@ -259,7 +260,7 @@ router.post("/clients/:id/loyalty/adjust", requireRole("admin"), async (req: Req
   const newPts = Math.max(0, Math.min(client.loyaltyPoints + parsed.data.points, cap));
   await db.update(clientsTable).set({ loyaltyPoints: newPts })
     .where(and(eq(clientsTable.id, id), eq(clientsTable.barbershopId, shop)));
-  const today = new Date().toISOString().split("T")[0];
+  const today = toBusinessDateString();
   await db.insert(loyaltyMovementsTable).values({
     barbershopId: shop,
     clientId: id,

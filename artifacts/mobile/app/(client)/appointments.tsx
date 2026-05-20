@@ -28,14 +28,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Appointment, useData } from "@/contexts/DataContext";
 import { useColors } from "@/hooks/useColors";
 import { usePagination } from "@/hooks/usePagination";
+import { addLocalDays, toLocalDateString } from "@/lib/dates";
 
 type Filter = "upcoming" | "past" | "cancelled";
 
-const DATES = Array.from({ length: 60 }, (_, i) => {
-  const date = new Date();
-  date.setDate(date.getDate() + i);
-  return date;
-});
+const DATES = Array.from({ length: 60 }, (_, i) => addLocalDays(i));
 
 export default function AppointmentsScreen() {
   const colors = useColors();
@@ -64,7 +61,7 @@ export default function AppointmentsScreen() {
   const myApts = appointments
     .filter((apt) => apt.clientId === (user?.clientId ?? user?.id))
     .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
-  const today = new Date().toISOString().split("T")[0];
+  const today = toLocalDateString();
   const requestedFilter = Array.isArray(params.filter) ? params.filter[0] : params.filter;
 
   useEffect(() => {
@@ -144,7 +141,7 @@ export default function AppointmentsScreen() {
     setRescheduleTime("");
   };
 
-  const rescheduleDateStr = rescheduleDate.toISOString().split("T")[0];
+  const rescheduleDateStr = toLocalDateString(rescheduleDate);
   const availableSlots = rescheduleApt
     ? getAvailableSlots(rescheduleDateStr, rescheduleApt.professionalId, rescheduleApt.totalDuration)
       .filter((slot) => slot !== rescheduleApt.time || rescheduleDateStr !== rescheduleApt.date)
@@ -434,7 +431,7 @@ export default function AppointmentsScreen() {
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.dateScroll}>
                 <View style={styles.dateRow}>
                   {DATES.map((date) => {
-                    const dateStr = date.toISOString().split("T")[0];
+                    const dateStr = toLocalDateString(date);
                     const isSelected = dateStr === rescheduleDateStr;
                     const isToday = dateStr === today;
                     return (

@@ -12,7 +12,7 @@ export interface PushMessage {
 }
 
 export async function sendExpoPush(messages: PushMessage[]): Promise<void> {
-  const valid = messages.filter((m) => typeof m.to === "string" && m.to.startsWith("ExponentPushToken"));
+  const valid = messages.filter((m) => typeof m.to === "string" && isExpoPushToken(m.to));
   if (valid.length === 0) return;
   try {
     const res = await fetch(EXPO_PUSH_URL, {
@@ -26,4 +26,8 @@ export async function sendExpoPush(messages: PushMessage[]): Promise<void> {
   } catch (err) {
     logger.warn({ err }, "expo push request errored");
   }
+}
+
+export function isExpoPushToken(token: string): boolean {
+  return token.startsWith("ExponentPushToken") || token.startsWith("ExpoPushToken");
 }

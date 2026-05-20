@@ -17,16 +17,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useData } from "@/contexts/DataContext";
 import { useColors } from "@/hooks/useColors";
 import { usePagination } from "@/hooks/usePagination";
+import { addLocalDays, toLocalDateString } from "@/lib/dates";
 
-const DATES = (() => {
-  const list: Date[] = [];
-  for (let i = -3; i < 30; i++) {
-    const d = new Date();
-    d.setDate(d.getDate() + i);
-    list.push(d);
-  }
-  return list;
-})();
+const DATES = Array.from({ length: 33 }, (_, i) => addLocalDays(i - 3));
 
 type StatusFilter = "all" | "pending" | "confirmed" | "completed" | "cancelled";
 
@@ -44,15 +37,15 @@ export default function EmployeeAgendaScreen() {
   const { user } = useAuth();
   const { appointments } = useData();
 
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date>(addLocalDays(0));
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
 
   const topPad = insets.top;
   const botPad = Platform.OS === "web" ? 34 : insets.bottom;
 
   const profId = user?.professionalId;
-  const dateStr = selectedDate.toISOString().split("T")[0];
-  const today = new Date().toISOString().split("T")[0];
+  const dateStr = toLocalDateString(selectedDate);
+  const today = toLocalDateString();
 
   const dayAppointments = useMemo(() =>
     appointments
@@ -78,7 +71,7 @@ export default function EmployeeAgendaScreen() {
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.dateScroll}>
           {DATES.map((d) => {
-            const dStr = d.toISOString().split("T")[0];
+            const dStr = toLocalDateString(d);
             const isSelected = dStr === dateStr;
             const isToday = dStr === today;
             const dayApts = appointments.filter((a) => a.professionalId === profId && a.date === dStr && a.status !== "cancelled");

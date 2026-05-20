@@ -67,6 +67,9 @@ const uniqueValues = (values: string[]) =>
 const formatCurrency = (value: number) =>
   value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+const normalizeText = (value?: string | null) => (value ?? "").trim().toLowerCase();
+const digitsOnly = (value?: string | null) => (value ?? "").replace(/\D/g, "");
+
 const CATEGORY_TYPE_META: Record<Category["type"], { label: string; description: string; placeholder: string }> = {
   service: {
     label: "Serviços",
@@ -184,7 +187,7 @@ export default function ManagementScreen() {
     addService, updateService, deleteService, addProduct, updateProduct, deleteProduct,
     addCategory, deleteCategory, updateProductOrderStatus,
     addServicePackage, updateServicePackage,
-    addProfessional, updateProfessional, updateProfessionalSchedule,
+    addProfessional, updateProfessional, deleteProfessional, updateProfessionalSchedule,
     loyaltySettings, updateLoyaltySettings, getProfessionalStats,
     appointments, clients,
   } = useData();
@@ -347,6 +350,8 @@ export default function ManagementScreen() {
   const [scheduleProf, setScheduleProf] = useState<Professional | null>(null);
   const [profForm, setProfForm] = useState({ name: "", specialty: "", bio: "", phone: "", email: "", commissionRate: "50", hasAccess: false, password: "", serviceIds: [] as string[] });
   const [editSchedule, setEditSchedule] = useState<ProfessionalSchedule>({ ...DEFAULT_SCHEDULE });
+  const [savingProf, setSavingProf] = useState(false);
+  const [deletingProfId, setDeletingProfId] = useState<string | null>(null);
 
   const findProfUser = (profId: string) => barbershopUsers.find((u) => u.role === "employee" && u.professionalId === profId);
 
@@ -449,6 +454,125 @@ export default function ManagementScreen() {
     }
     setTeamModal(false);
   };
+  const saveProfSafe = async () => {
+    if (savingProf) return;
+    const cleanName = profForm.name.trim();
+    const cleanSpecialty = profForm.specialty.trim();
+    const cleanEmail = profForm.email.trim().toLowerCase();
+    const cleanPhone = profForm.phone.trim();
+    if (!cleanName || !cleanSpecialty) { Alert.alert("Preencha nome e especialidade"); return; }
+    if (cleanEmail && !isValidEmail(cleanEmail)) { Alert.alert("Email invalido", "Informe um email valido para o funcionario."); return; }
+    if (services.length > 0 && profForm.serviceIds.length === 0) {
+      Alert.alert("Atencao", "Selecione ao menos um servico que este profissional realiza.");
+      return;
+    }
+    const duplicate = professionals.find((professional) => {
+      if (professional.id === editingProf?.id) return false;
+      if (cleanEmail && normalizeText(professional.email) === cleanEmail) return true;
+      if (cleanPhone && digitsOnly(professional.phone) === digitsOnly(cleanPhone)) return true;
+      return false;
+    });
+    if (duplicate) {
+      Alert.alert("Funcionario duplicado", "Ja existe um profissional com esse telefone ou email.");
+      return;
+    }
+
+    const initials = cleanName.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
+    const profId = editingProf?.id ?? Date.now().toString();
+    const existingUser = editingProf ? findProfUser(editingProf.id) : undefined;
+    const commissionRate = Math.min(100, Math.max(0, parseInt(profForm.commissionRate || "50", 10) || 0));
+    const professional: Professional = {
+      id: profId,
+      barbershopId: editingProf?.barbershopId ?? (barbershop?.id ?? ""),
+      name: cleanName,
+      specialty: cleanSpecialty,
+      bio: profForm.bio.trim(),
+      phone: cleanPhone,
+      email: cleanEmail,
+      commissionRate,
+      rating: editingProf?.rating ?? 5.0,
+      appointmentsCount: editingProf?.appointmentsCount ?? 0,
+      isAvailable: editingProf?.isAvailable ?? true,
+      avatar: initials,
+      serviceIds: profForm.serviceIds,
+    };
+
+    if (profForm.hasAccess) {
+      if (!planHasFeature(planStatus.plan, "team")) {
+        Alert.alert("Plano Medio necessario", "Acesso de funcionario e equipe com login estao disponiveis a partir do plano Medio.");
+        return;
+      }
+      if (!existingUser && employeeAccessCount >= planLimits.employeeLogins) {
+        Alert.alert("Limite do plano", `Seu plano permite ate ${planLimits.employeeLogins} login${planLimits.employeeLogins === 1 ? "" : "s"} de funcionario. Faca upgrade para liberar mais acessos.`);
+        return;
+      }
+      if (!cleanEmail) { Alert.alert("Atencao", "Email e obrigatorio para criar acesso de funcionario."); return; }
+      if (!existingUser && !profForm.password) {
+        Alert.alert("Atencao", "Defina uma senha para o novo acesso de funcionario.");
+        return;
+      }
+      if (profForm.password) {
+        const passwordError = passwordPolicyError(profForm.password);
+        if (passwordError) {
+          Alert.alert("Senha insegura", passwordError);
+          return;
+        }
+      }
+      const collision = barbershopUsers.find(
+        (u) => u.email.toLowerCase() === cleanEmail && u.id !== existingUser?.id
+      );
+      if (collision) {
+        Alert.alert("Erro no acesso", "Email ja esta em uso por outro usuario.");
+        return;
+      }
+    }
+
+    setSavingProf(true);
+    try {
+      let savedProfessional = professional;
+      if (editingProf) await updateProfessional(professional);
+      else savedProfessional = await addProfessional(professional);
+
+      if (profForm.hasAccess) {
+        const res = await upsertEmployeeUser({
+          professionalId: savedProfessional.id,
+          name: cleanName,
+          email: cleanEmail,
+          password: profForm.password,
+          phone: cleanPhone,
+        });
+        if (!res.ok) throw new Error(res.error ?? "Nao foi possivel salvar o acesso do funcionario.");
+      } else if (existingUser) {
+        await removeEmployeeUser(existingUser.id);
+      }
+
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setTeamModal(false);
+      Alert.alert(
+        editingProf ? "Funcionario atualizado" : "Funcionario criado",
+        `${cleanName} foi ${editingProf ? "atualizado" : "cadastrado"} com sucesso.`,
+      );
+    } catch (err) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Alert.alert("Nao foi possivel salvar", err instanceof Error ? err.message : "Tente novamente.");
+    } finally {
+      setSavingProf(false);
+    }
+  };
+
+  const confirmDeleteProf = (p: Professional) => confirmDelete("Excluir funcionario", `Excluir "${p.name}"? O login vinculado tambem sera removido.`, async () => {
+    if (deletingProfId) return;
+    setDeletingProfId(p.id);
+    try {
+      const linkedUser = findProfUser(p.id);
+      await deleteProfessional(p.id);
+      if (linkedUser) await removeEmployeeUser(linkedUser.id);
+      Alert.alert("Funcionario excluido", `${p.name} foi removido da equipe.`);
+    } finally {
+      setDeletingProfId(null);
+    }
+  });
+
   const openSchedule = (p: Professional) => {
     setScheduleProf(p);
     setEditSchedule(professionalSchedules[p.id] ? { ...professionalSchedules[p.id] } : { ...DEFAULT_SCHEDULE });
@@ -956,6 +1080,16 @@ export default function ManagementScreen() {
                     <Feather name="calendar" size={13} color={colors.gold} />
                     <Text style={[styles.profActionText, { color: colors.gold }]}>Escala</Text>
                   </TouchableOpacity>
+                  <TouchableOpacity
+                    disabled={deletingProfId === item.id}
+                    style={[styles.profActionBtn, { borderColor: colors.destructive + "55", opacity: deletingProfId === item.id ? 0.55 : 1 }]}
+                    onPress={() => confirmDeleteProf(item)}
+                  >
+                    <Feather name="trash-2" size={13} color={colors.destructive} />
+                    <Text style={[styles.profActionText, { color: colors.destructive }]}>
+                      {deletingProfId === item.id ? "Excluindo" : "Excluir"}
+                    </Text>
+                  </TouchableOpacity>
                 </View>
               </View>
             );
@@ -1344,12 +1478,16 @@ export default function ManagementScreen() {
       </Modal>
 
       {/* ── PROFESSIONAL MODAL ── */}
-      <Modal visible={teamModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setTeamModal(false)}>
+      <Modal visible={teamModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => { if (!savingProf) setTeamModal(false); }}>
         <View style={[styles.modal, { backgroundColor: colors.background }]}>
           <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
-            <TouchableOpacity onPress={() => setTeamModal(false)}><Feather name="x" size={22} color={colors.foreground} /></TouchableOpacity>
+            <TouchableOpacity disabled={savingProf} onPress={() => setTeamModal(false)}><Feather name="x" size={22} color={savingProf ? colors.mutedForeground : colors.foreground} /></TouchableOpacity>
             <Text style={[styles.modalTitle, { color: colors.foreground }]}>{editingProf ? "Editar Profissional" : "Novo Profissional"}</Text>
-            <TouchableOpacity onPress={saveProf}><Text style={[styles.saveText, { color: colors.gold }]}>Salvar</Text></TouchableOpacity>
+            <TouchableOpacity disabled={savingProf} onPress={saveProfSafe}>
+              <Text style={[styles.saveText, { color: savingProf ? colors.mutedForeground : colors.gold }]}>
+                {savingProf ? "Salvando..." : "Salvar"}
+              </Text>
+            </TouchableOpacity>
           </View>
           <KeyboardAwareScrollViewCompat contentContainerStyle={[styles.modalContent, { paddingBottom: insets.bottom + 40 }]} keyboardShouldPersistTaps="handled">
             {([

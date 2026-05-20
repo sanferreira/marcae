@@ -20,6 +20,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useData } from "@/contexts/DataContext";
 import { useColors } from "@/hooks/useColors";
 import { BASE_PLAN_PRICE_LABEL, PAYMENT_PENDING_PLAN, getPlanDisplayName, planHasFeature } from "@/constants/plans";
+import { toLocalDateString } from "@/lib/dates";
 
 const PAY_METHODS = ["PIX", "Dinheiro", "Cartao", "Pacote"];
 
@@ -36,7 +37,7 @@ export default function DashboardScreen() {
   const topPad = insets.top;
   const botPad = Platform.OS === "web" ? 34 : insets.bottom;
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = toLocalDateString();
   const thisMonth = today.slice(0, 7);
 
   const todayApts = appointments.filter((a) => a.date === today && a.status !== "cancelled");

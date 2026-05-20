@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useMemo } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useRef } from "react";
+import { Alert } from "react-native";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useAuth } from "./AuthContext";
 import { apiFetch } from "@/lib/api";
@@ -155,6 +156,7 @@ interface DataContextType {
   cancelClientPackage: (id: string) => Promise<void>;
   addProfessional: (p: Omit<Professional, "barbershopId">) => Promise<Professional>;
   updateProfessional: (p: Professional) => Promise<void>;
+  deleteProfessional: (id: string) => Promise<void>;
   updateProfessionalSchedule: (professionalId: string, schedule: ProfessionalSchedule) => Promise<void>;
 
   addAppointment: (apt: Omit<Appointment, "barbershopId" | "id" | "createdAt">) => Promise<Appointment>;
@@ -180,6 +182,7 @@ interface DataContextType {
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 const DEFAULT_SETTINGS: LoyaltySettings = { requiredPoints: 10, benefitDescription: "Atendimento gratuito" };
+const LIVE_APPOINTMENTS_REFETCH_MS = 10000;
 
 function generateTimeSlots(start: string, end: string, stepMin: number): string[] {
   const [sh, sm] = start.split(":").map(Number);
@@ -268,6 +271,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   });
   const appointments = useQuery({
     queryKey: ["appointments", shopKey], enabled,
+    refetchInterval: enabled ? LIVE_APPOINTMENTS_REFETCH_MS : false,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
     queryFn: async () => {
       const r = await apiFetch<Appointment[]>("/appointments");
       return r.ok ? r.data : [];
@@ -319,6 +325,39 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   const invalidate = (...keys: string[]) =>
     Promise.all(keys.map((k) => qc.invalidateQueries({ queryKey: [k, shopKey] })));
+
+  const knownAppointmentIds = useRef<Set<string> | null>(null);
+  useEffect(() => {
+    if (!enabled || user?.role === "client") {
+      knownAppointmentIds.current = null;
+      return;
+    }
+    if (!appointments.isFetched) return;
+
+    const rows = appointments.data ?? [];
+    if (knownAppointmentIds.current === null) {
+      knownAppointmentIds.current = new Set(rows.map((appointment) => appointment.id));
+      return;
+    }
+
+    const relevantNewAppointments = rows
+      .filter((appointment) => !knownAppointmentIds.current!.has(appointment.id))
+      .filter((appointment) => appointment.status !== "cancelled")
+      .filter((appointment) => user?.role === "admin" || appointment.professionalId === user?.professionalId)
+      .sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));
+
+    rows.forEach((appointment) => knownAppointmentIds.current!.add(appointment.id));
+
+    const latest = relevantNewAppointments[0];
+    if (!latest) return;
+
+    const serviceNames = latest.services.map((service) => service.name).join(" + ");
+    const dateLabel = new Date(`${latest.date}T12:00:00`).toLocaleDateString("pt-BR");
+    Alert.alert(
+      "Novo agendamento",
+      `${latest.clientName} marcou ${serviceNames} com ${latest.professionalName} para ${dateLabel} as ${latest.time}.`,
+    );
+  }, [appointments.data, appointments.isFetched, enabled, user?.professionalId, user?.role]);
 
   // ── Mutations (helpers) ─────────────────────────────────────────────────
   const post = async <T,>(path: string, body: unknown): Promise<T> => {
@@ -400,6 +439,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   };
   const updateProfessional: DataContextType["updateProfessional"] = async (p) => {
     await patch(`/professionals/${p.id}`, { name: p.name, specialty: p.specialty, bio: p.bio, avatar: p.avatar, avatarImage: p.avatarImage, phone: p.phone, email: p.email, commissionRate: p.commissionRate, isAvailable: p.isAvailable, serviceIds: p.serviceIds ?? [] });
+    await invalidate("professionals");
+  };
+  const deleteProfessional: DataContextType["deleteProfessional"] = async (id) => {
+    await remove(`/professionals/${id}`);
     await invalidate("professionals");
   };
   const updateProfessionalSchedule: DataContextType["updateProfessionalSchedule"] = async (id, schedule) => {
@@ -589,7 +632,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       addCategory, deleteCategory,
       createProductOrder, updateProductOrderStatus,
       addServicePackage, updateServicePackage, assignClientPackage, cancelClientPackage,
-      addProfessional, updateProfessional, updateProfessionalSchedule,
+      addProfessional, updateProfessional, deleteProfessional, updateProfessionalSchedule,
       addAppointment, updateAppointmentStatus, confirmAppointment, cancelAppointment, rescheduleAppointment, updateAppointmentNotes,
       addClient, updateClient, exportClientsCsv, importClientsCsv, addCashEntry, updateLoyaltySettings,
       getClientLoyalty, adjustClientLoyalty,

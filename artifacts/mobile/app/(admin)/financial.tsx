@@ -21,6 +21,7 @@ import { useData } from "@/contexts/DataContext";
 import { planHasFeature } from "@/constants/plans";
 import { useColors } from "@/hooks/useColors";
 import { usePagination } from "@/hooks/usePagination";
+import { toLocalDateString } from "@/lib/dates";
 import { typedInputProps } from "@/lib/inputProps";
 import { isValidIsoDate, maskCurrencyInput, maskIsoDate, parseCurrencyInput } from "@/lib/masks";
 
@@ -58,10 +59,7 @@ const PERIODS: { key: Period; label: string }[] = [
   { key: "month", label: "Mês" },
 ];
 
-const localDateString = (date = new Date()) => {
-  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
-  return local.toISOString().split("T")[0];
-};
+const localDateString = toLocalDateString;
 
 const formatCurrency = (value: number) =>
   value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
