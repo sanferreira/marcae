@@ -137,6 +137,15 @@ export default function AgendaScreen() {
       normalized(client.phone).includes(query) ||
       normalized(client.email).includes(query)).slice(0, 30);
   }, [clientSearch, clients]);
+  const appointmentsByDate = useMemo(() => {
+    const map = new Map<string, number>();
+    appointments
+      .filter((appointment) => appointment.status !== "cancelled")
+      .forEach((appointment) => {
+        map.set(appointment.date, (map.get(appointment.date) ?? 0) + 1);
+      });
+    return map;
+  }, [appointments]);
 
   const dayApts = appointments
     .filter((a) => a.date === dateStr)
@@ -723,6 +732,7 @@ export default function AgendaScreen() {
               const ds = toLocalDateString(d);
               const isSelected = ds === dateStr;
               const isToday = ds === today;
+              const hasAppointments = (appointmentsByDate.get(ds) ?? 0) > 0;
               return (
                 <TouchableOpacity
                   key={ds}
@@ -754,7 +764,7 @@ export default function AgendaScreen() {
                   >
                     {d.getDate()}
                   </Text>
-                  {dayApts.length > 0 && ds === dateStr && (
+                  {hasAppointments && (
                     <View style={[styles.dot, { backgroundColor: isSelected ? colors.goldForeground : colors.gold }]} />
                   )}
                 </TouchableOpacity>
