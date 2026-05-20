@@ -818,6 +818,14 @@ export default function AgendaScreen() {
             <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
               Nenhum agendamento para este dia
             </Text>
+            <TouchableOpacity
+              style={[styles.emptyActionBtn, { backgroundColor: colors.gold }]}
+              onPress={openBooking}
+              activeOpacity={0.82}
+            >
+              <Feather name="plus" size={16} color={colors.goldForeground} />
+              <Text style={[styles.emptyActionText, { color: colors.goldForeground }]}>Agendar cliente</Text>
+            </TouchableOpacity>
           </View>
         }
         ListFooterComponent={
@@ -830,6 +838,17 @@ export default function AgendaScreen() {
           />
         }
       />
+      <TouchableOpacity
+        style={[
+          styles.floatingBookingBtn,
+          { backgroundColor: colors.gold, bottom: botPad + 82 },
+        ]}
+        onPress={openBooking}
+        activeOpacity={0.86}
+      >
+        <Feather name="plus" size={18} color={colors.goldForeground} />
+        <Text style={[styles.floatingBookingText, { color: colors.goldForeground }]}>Agendar</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -987,4 +1006,32 @@ const styles = StyleSheet.create({
   },
   emptyTitle: { fontSize: 17, fontFamily: "Inter_600SemiBold" },
   emptyText: { fontSize: 14, fontFamily: "Inter_400Regular" },
+  emptyActionBtn: {
+    minHeight: 44,
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    marginTop: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  emptyActionText: { fontSize: 14, fontFamily: "Inter_700Bold" },
+  floatingBookingBtn: {
+    position: "absolute",
+    right: 18,
+    minHeight: 48,
+    borderRadius: 999,
+    paddingHorizontal: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    shadowColor: "#000",
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 8,
+  },
+  floatingBookingText: { fontSize: 14, fontFamily: "Inter_700Bold" },
 });
