@@ -8,6 +8,7 @@ export interface Service {
   id: string; barbershopId: string; name: string; price: number; duration: number;
   loyaltyPoints: number;
   description: string; category: string; isActive: boolean;
+  imageUrl?: string | null;
 }
 export interface Product {
   id: string; barbershopId: string; name: string; price: number; costPrice: number;
@@ -76,10 +77,12 @@ export interface LoyaltyInfo {
 
 export interface Client {
   id: string; barbershopId: string;
+  userId?: string | null; hasAccess?: boolean;
   name: string; phone: string; email: string;
   birthDate?: string; totalSpent: number; appointmentsCount: number;
   productOrdersSpent?: number;
   lastVisit?: string; loyaltyPoints: number; notes?: string;
+  archivedAt?: string;
   allergies?: string; restrictions?: string; preferences?: string; emergencyContact?: string;
   intakeData?: Record<string, string>;
 }
@@ -136,6 +139,7 @@ interface DataContextType {
   professionalSchedules: Record<string, ProfessionalSchedule>;
   appointments: Appointment[];
   clients: Client[];
+  inactiveClients: Client[];
   cashEntries: CashEntry[];
   loyaltySettings: LoyaltySettings;
   isLoading: boolean;
@@ -166,8 +170,11 @@ interface DataContextType {
   rescheduleAppointment: (id: string, newDate: string, newTime: string) => Promise<void>;
   updateAppointmentNotes: (id: string, professionalNotes: string) => Promise<void>;
 
-  addClient: (c: Omit<Client, "barbershopId" | "id">) => Promise<Client>;
+  addClient: (c: Omit<Client, "barbershopId" | "id"> & { password?: string }) => Promise<Client>;
   updateClient: (c: Client) => Promise<void>;
+  createClientAccess: (clientId: string, password: string, email?: string) => Promise<Client>;
+  archiveClient: (id: string) => Promise<void>;
+  reactivateClient: (id: string) => Promise<void>;
   exportClientsCsv: () => Promise<{ filename: string; csv: string }>;
   importClientsCsv: (csv: string) => Promise<{ created: number; skipped: number }>;
   addCashEntry: (e: Omit<CashEntry, "barbershopId" | "id">) => Promise<void>;
@@ -266,6 +273,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     queryKey: ["clients", shopKey], enabled,
     queryFn: async () => {
       const r = await apiFetch<Client[]>("/clients");
+      return r.ok ? r.data : [];
+    },
+  });
+  const inactiveClients = useQuery({
+    queryKey: ["inactiveClients", shopKey], enabled: enabled && user?.role !== "client",
+    queryFn: async () => {
+      const r = await apiFetch<Client[]>("/clients?status=archived");
       return r.ok ? r.data : [];
     },
   });
@@ -376,11 +390,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   };
 
   const addService: DataContextType["addService"] = async (s) => {
-    await post("/services", { name: s.name, price: s.price, duration: s.duration, loyaltyPoints: s.loyaltyPoints ?? 1, description: s.description, category: s.category, isActive: s.isActive });
+    await post("/services", { name: s.name, price: s.price, duration: s.duration, loyaltyPoints: s.loyaltyPoints ?? 1, description: s.description, category: s.category, imageUrl: s.imageUrl ?? null, isActive: s.isActive });
     await invalidate("services", "categories");
   };
   const updateService: DataContextType["updateService"] = async (s) => {
-    await patch(`/services/${s.id}`, { name: s.name, price: s.price, duration: s.duration, loyaltyPoints: s.loyaltyPoints ?? 1, description: s.description, category: s.category, isActive: s.isActive });
+    await patch(`/services/${s.id}`, { name: s.name, price: s.price, duration: s.duration, loyaltyPoints: s.loyaltyPoints ?? 1, description: s.description, category: s.category, imageUrl: s.imageUrl ?? null, isActive: s.isActive });
     await invalidate("services", "categories");
   };
   const deleteService: DataContextType["deleteService"] = async (id) => {
@@ -487,13 +501,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   };
 
   const addClient: DataContextType["addClient"] = async (c) => {
-    // Client users created via /auth/register-client already get a clients row server-side.
-    // This only runs for walk-in clients added by admin (not yet wired in UI), so keep best-effort.
+    // Password is optional: without it the admin creates only a walk-in/client ficha.
     const created = await post<Client>("/clients", {
       name: c.name, phone: c.phone, email: c.email, birthDate: c.birthDate, notes: c.notes,
       allergies: c.allergies ?? "", restrictions: c.restrictions ?? "", preferences: c.preferences ?? "",
       emergencyContact: c.emergencyContact ?? "",
       intakeData: c.intakeData ?? {},
+      password: c.password || undefined,
     });
     await invalidate("clients");
     return created;
@@ -506,6 +520,19 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       intakeData: c.intakeData ?? {},
     });
     await invalidate("clients");
+  };
+  const createClientAccess: DataContextType["createClientAccess"] = async (clientId, password, email) => {
+    const updated = await post<Client>(`/clients/${clientId}/access`, { password, email });
+    await invalidate("clients");
+    return updated;
+  };
+  const archiveClient: DataContextType["archiveClient"] = async (id) => {
+    await patch(`/clients/${id}/archive`, {});
+    await invalidate("clients", "inactiveClients");
+  };
+  const reactivateClient: DataContextType["reactivateClient"] = async (id) => {
+    await patch(`/clients/${id}/reactivate`, {});
+    await invalidate("clients", "inactiveClients");
   };
   const exportClientsCsv: DataContextType["exportClientsCsv"] = async () => {
     const r = await apiFetch<{ filename: string; csv: string }>("/clients/export");
@@ -542,7 +569,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   const getClientLoyalty: DataContextType["getClientLoyalty"] = (clientId) => {
     if (currentClientLoyalty.data && clientId === user?.clientId) return currentClientLoyalty.data;
-    const c = (clients.data ?? []).find((cl) => cl.id === clientId);
+    const c = [...(clients.data ?? []), ...(inactiveClients.data ?? [])].find((cl) => cl.id === clientId);
     const settings = loyaltySettings.data ?? DEFAULT_SETTINGS;
     return {
       currentPoints: c?.loyaltyPoints ?? 0,
@@ -628,6 +655,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       professionalSchedules,
       appointments: appointments.data ?? [],
       clients: clients.data ?? [],
+      inactiveClients: inactiveClients.data ?? [],
       cashEntries: cashEntries.data ?? [],
       loyaltySettings: loyaltySettings.data ?? DEFAULT_SETTINGS,
       isLoading,
@@ -638,7 +666,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       addServicePackage, updateServicePackage, assignClientPackage, cancelClientPackage,
       addProfessional, updateProfessional, deleteProfessional, updateProfessionalSchedule,
       addAppointment, updateAppointmentStatus, confirmAppointment, cancelAppointment, rescheduleAppointment, updateAppointmentNotes,
-      addClient, updateClient, exportClientsCsv, importClientsCsv, addCashEntry, updateLoyaltySettings,
+      addClient, updateClient, createClientAccess, archiveClient, reactivateClient, exportClientsCsv, importClientsCsv, addCashEntry, updateLoyaltySettings,
       getClientLoyalty, adjustClientLoyalty,
       getClientAppointments, getAvailableSlots, getProfessionalStats,
     }}>

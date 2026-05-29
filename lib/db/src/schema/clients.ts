@@ -19,6 +19,7 @@ export const clientsTable = pgTable("clients", {
   preferences: text("preferences").notNull().default(""),
   emergencyContact: text("emergency_contact").notNull().default(""),
   intakeData: jsonb("intake_data").$type<Record<string, string>>(),
+  archivedAt: timestamp("archived_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

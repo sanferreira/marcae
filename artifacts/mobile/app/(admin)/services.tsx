@@ -1,4 +1,5 @@
 import { Feather } from "@expo/vector-icons";
+import { Image } from "expo-image";
 import * as Haptics from "expo-haptics";
 import { useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -35,6 +36,7 @@ import {
   getPlanPrice,
   planHasFeature,
 } from "@/constants/plans";
+import { pickServiceImage } from "@/lib/avatarUpload";
 import { typedInputProps } from "@/lib/inputProps";
 import {
   formatCurrencyInput,
@@ -215,11 +217,21 @@ export default function ManagementScreen() {
   // ── Service state ─────────────────────────────────────────────────────────
   const [serviceModal, setServiceModal] = useState(false);
   const [editingSvc, setEditingSvc] = useState<Service | null>(null);
-  const [svcForm, setSvcForm] = useState({ name: "", price: "", duration: "", loyaltyPoints: "1", description: "", category: "Geral" });
+  const [svcForm, setSvcForm] = useState({ name: "", price: "", duration: "", loyaltyPoints: "1", description: "", category: "Geral", imageUrl: "" });
   const serviceCategoryOptions = uniqueValues(["Geral", ...categories.filter((cat) => cat.type === "service").map((cat) => cat.name), ...services.map((service) => service.category)]);
 
-  const openNewSvc = () => { setEditingSvc(null); setSvcForm({ name: "", price: "", duration: "", loyaltyPoints: "1", description: "", category: serviceCategoryOptions[0] ?? "Geral" }); setServiceModal(true); };
-  const openEditSvc = (s: Service) => { setEditingSvc(s); setSvcForm({ name: s.name, price: formatCurrencyInput(s.price), duration: s.duration.toString(), loyaltyPoints: String(s.loyaltyPoints ?? 1), description: s.description, category: s.category }); setServiceModal(true); };
+  const openNewSvc = () => { setEditingSvc(null); setSvcForm({ name: "", price: "", duration: "", loyaltyPoints: "1", description: "", category: serviceCategoryOptions[0] ?? "Geral", imageUrl: "" }); setServiceModal(true); };
+  const openEditSvc = (s: Service) => { setEditingSvc(s); setSvcForm({ name: s.name, price: formatCurrencyInput(s.price), duration: s.duration.toString(), loyaltyPoints: String(s.loyaltyPoints ?? 1), description: s.description, category: s.category, imageUrl: s.imageUrl ?? "" }); setServiceModal(true); };
+  const handlePickServiceImage = async () => {
+    try {
+      const image = await pickServiceImage();
+      if (!image) return;
+      setSvcForm((prev) => ({ ...prev, imageUrl: image }));
+    } catch (error) {
+      Alert.alert("NÃ£o foi possÃ­vel carregar a imagem", (error as Error).message ?? "Tente outra foto.");
+    }
+  };
+  const clearServiceImage = () => setSvcForm((prev) => ({ ...prev, imageUrl: "" }));
   const saveSvc = async () => {
     if (!svcForm.name || !svcForm.price || !svcForm.duration) { Alert.alert("Preencha nome, preço e duração"); return; }
     const price = parseCurrencyInput(svcForm.price);
@@ -228,7 +240,7 @@ export default function ManagementScreen() {
     if (!Number.isFinite(price) || price <= 0 || !Number.isFinite(duration) || duration <= 0) { Alert.alert("Dados invalidos", "Informe preco e duracao validos."); return; }
     const category = svcForm.category.trim() || "Geral";
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    const s: Service = { id: editingSvc?.id ?? Date.now().toString(), barbershopId: editingSvc?.barbershopId ?? (barbershop?.id ?? ""), name: svcForm.name, price, duration, loyaltyPoints, description: svcForm.description, category, isActive: editingSvc?.isActive ?? true };
+    const s: Service = { id: editingSvc?.id ?? Date.now().toString(), barbershopId: editingSvc?.barbershopId ?? (barbershop?.id ?? ""), name: svcForm.name, price, duration, loyaltyPoints, description: svcForm.description, category, imageUrl: svcForm.imageUrl.trim() || null, isActive: editingSvc?.isActive ?? true };
     await addCategory({ type: "service", name: category });
     if (editingSvc) await updateService(s); else await addService(s);
     setServiceModal(false);
@@ -762,6 +774,13 @@ export default function ManagementScreen() {
           renderItem={({ item }) => (
             <View style={[styles.itemCard, { backgroundColor: colors.card, borderColor: colors.border, opacity: item.isActive ? 1 : 0.55 }]}>
               <View style={styles.itemMain}>
+                <View style={[styles.serviceThumb, { backgroundColor: colors.secondary }]}>
+                  {item.imageUrl ? (
+                    <Image source={{ uri: item.imageUrl }} style={styles.serviceThumbImage} contentFit="cover" transition={120} />
+                  ) : (
+                    <Feather name="scissors" size={18} color={colors.mutedForeground} />
+                  )}
+                </View>
                 <View style={styles.itemInfo}>
                   <View style={styles.nameRow}>
                     <Text style={[styles.itemName, { color: colors.foreground }]}>{item.name}</Text>
@@ -1301,6 +1320,28 @@ export default function ManagementScreen() {
             <TouchableOpacity onPress={saveSvc}><Text style={[styles.saveText, { color: colors.gold }]}>Salvar</Text></TouchableOpacity>
           </View>
           <KeyboardAwareScrollViewCompat contentContainerStyle={[styles.modalContent, { paddingBottom: insets.bottom + 40 }]} keyboardShouldPersistTaps="handled">
+            <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>Imagem do serviÃ§o</Text>
+            <View style={[styles.serviceImageEditor, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <View style={[styles.serviceImagePreview, { backgroundColor: colors.secondary }]}>
+                {svcForm.imageUrl ? (
+                  <Image source={{ uri: svcForm.imageUrl }} style={styles.serviceImagePreviewPhoto} contentFit="cover" transition={120} />
+                ) : (
+                  <Feather name="image" size={24} color={colors.mutedForeground} />
+                )}
+              </View>
+              <View style={styles.serviceImageActions}>
+                <TouchableOpacity style={[styles.photoBtn, { backgroundColor: colors.gold }]} onPress={() => { void handlePickServiceImage(); }}>
+                  <Feather name="image" size={15} color={colors.goldForeground} />
+                  <Text style={[styles.photoBtnText, { color: colors.goldForeground }]}>Escolher imagem</Text>
+                </TouchableOpacity>
+                {!!svcForm.imageUrl && (
+                  <TouchableOpacity style={[styles.photoGhostBtn, { borderColor: colors.border }]} onPress={clearServiceImage}>
+                    <Feather name="trash-2" size={14} color={colors.foreground} />
+                    <Text style={[styles.photoGhostBtnText, { color: colors.foreground }]}>Remover</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
             {([
               { label: "Nome do serviço", key: "name", type: "default" },
               { label: "Preço (R$)", key: "price", type: "decimal-pad" },
@@ -1669,6 +1710,8 @@ const styles = StyleSheet.create({
   list: { padding: 20 },
   itemCard: { borderRadius: 14, borderWidth: 1, marginBottom: 10, padding: 14 },
   itemMain: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
+  serviceThumb: { width: 58, height: 58, borderRadius: 12, alignItems: "center", justifyContent: "center", overflow: "hidden" },
+  serviceThumbImage: { width: "100%", height: "100%" },
   itemInfo: { flex: 1, gap: 5 },
   nameRow: { flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" },
   itemName: { fontSize: 15, fontFamily: "Inter_600SemiBold" },
@@ -1767,6 +1810,14 @@ const styles = StyleSheet.create({
   catRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   catChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20 },
   catChipText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
+  serviceImageEditor: { borderWidth: 1.5, borderRadius: 16, padding: 12, gap: 12, marginBottom: 4 },
+  serviceImagePreview: { width: "100%", aspectRatio: 4 / 3, borderRadius: 14, alignItems: "center", justifyContent: "center", overflow: "hidden" },
+  serviceImagePreviewPhoto: { width: "100%", height: "100%" },
+  serviceImageActions: { flexDirection: "row", gap: 8, flexWrap: "wrap" },
+  photoBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12 },
+  photoBtnText: { fontSize: 13, fontFamily: "Inter_700Bold" },
+  photoGhostBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12, borderWidth: 1 },
+  photoGhostBtnText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
   // schedule
   scheduleContent: { padding: 20, gap: 10 },
   scheduleHint: { fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 19, marginBottom: 6 },

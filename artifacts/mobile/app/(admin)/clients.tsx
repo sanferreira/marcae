@@ -22,7 +22,7 @@ import { Client, useData } from "@/contexts/DataContext";
 import { useColors } from "@/hooks/useColors";
 import { usePagination } from "@/hooks/usePagination";
 import { typedInputProps } from "@/lib/inputProps";
-import { isValidEmail, isValidIsoDate, maskIsoDate, maskPhone } from "@/lib/masks";
+import { isValidEmail, isValidIsoDate, maskIsoDate, maskPhone, passwordPolicyError } from "@/lib/masks";
 
 const formatCurrency = (value: number) =>
   value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -32,12 +32,13 @@ export default function ClientsScreen() {
   const insets = useSafeAreaInsets();
   const { barbershop } = useAuth();
   const {
-    appointments, clients, clientPackages, productOrders, servicePackages, loyaltySettings,
+    appointments, clients, inactiveClients, clientPackages, productOrders, servicePackages, loyaltySettings,
     getClientLoyalty, adjustClientLoyalty,
-    updateClient, exportClientsCsv, importClientsCsv,
+    updateClient, createClientAccess, archiveClient, reactivateClient, exportClientsCsv, importClientsCsv,
     assignClientPackage, cancelClientPackage,
   } = useData();
   const [search, setSearch] = useState("");
+  const [clientStatus, setClientStatus] = useState<"active" | "inactive">("active");
   const [selected, setSelected] = useState<Client | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [editForm, setEditForm] = useState({
@@ -45,6 +46,9 @@ export default function ClientsScreen() {
     allergies: "", restrictions: "", preferences: "", emergencyContact: "",
     intakeData: {} as Record<string, string>,
   });
+  const [accessOpen, setAccessOpen] = useState(false);
+  const [accessForm, setAccessForm] = useState({ email: "", password: "" });
+  const [savingAccess, setSavingAccess] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [importCsv, setImportCsv] = useState("");
   const [importing, setImporting] = useState(false);
@@ -60,7 +64,8 @@ export default function ClientsScreen() {
     return { total: namedHeader ? Math.max(0, rows.length - 1) : rows.length, namedHeader };
   }, [importCsv]);
 
-  const filtered = clients.filter(
+  const displayedClients = clientStatus === "active" ? clients : inactiveClients;
+  const filtered = displayedClients.filter(
     (c) =>
       c.name.toLowerCase().includes(search.toLowerCase()) ||
       c.phone.includes(search) ||
@@ -140,6 +145,96 @@ export default function ClientsScreen() {
     } catch (err) {
       Alert.alert("Erro", err instanceof Error ? err.message : "Nao foi possivel salvar a ficha.");
     }
+  };
+
+  const openAccessClient = (client: Client) => {
+    setAccessForm({ email: client.email, password: "" });
+    setAccessOpen(true);
+  };
+
+  const saveClientAccess = async () => {
+    if (!selected || savingAccess) return;
+    const email = accessForm.email.trim().toLowerCase();
+    if (!email || !isValidEmail(email)) {
+      Alert.alert("Email obrigatorio", "Informe um email valido para o acesso do cliente.");
+      return;
+    }
+    const passwordError = accessForm.password ? passwordPolicyError(accessForm.password) : "Informe uma senha.";
+    if (passwordError) {
+      Alert.alert("Senha insegura", passwordError);
+      return;
+    }
+
+    const alreadyHadAccess = !!(selected.hasAccess || selected.userId);
+    try {
+      setSavingAccess(true);
+      const updated = await createClientAccess(selected.id, accessForm.password, email);
+      setSelected(updated);
+      setAccessOpen(false);
+      setAccessForm({ email: "", password: "" });
+      Alert.alert(
+        alreadyHadAccess ? "Senha redefinida" : "Acesso criado",
+        "Informe ao cliente o ID do estabelecimento, email e senha inicial para entrar.",
+      );
+    } catch (err) {
+      Alert.alert("Erro no acesso", err instanceof Error ? err.message : "Nao foi possivel criar acesso.");
+    } finally {
+      setSavingAccess(false);
+    }
+  };
+
+  const confirmArchiveClient = (client: Client) => {
+    Alert.alert(
+      "Inativar cliente",
+      `Inativar "${client.name}"? O cliente sai da lista ativa, mas o historico de agendamentos, pedidos e financeiro continua preservado.`,
+      [
+        { text: "Voltar", style: "cancel" },
+        {
+          text: "Inativar",
+          style: "destructive",
+          onPress: () => {
+            void (async () => {
+              try {
+                await archiveClient(client.id);
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                setSelected(null);
+                Alert.alert("Cliente inativado", `${client.name} saiu da lista ativa de clientes.`);
+              } catch (err) {
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+                Alert.alert("Nao foi possivel inativar", err instanceof Error ? err.message : "Tente novamente.");
+              }
+            })();
+          },
+        },
+      ],
+    );
+  };
+
+  const confirmReactivateClient = (client: Client) => {
+    Alert.alert(
+      "Reativar cliente",
+      `Reativar "${client.name}"? Ele volta para a lista ativa e pode ser usado em novos agendamentos.`,
+      [
+        { text: "Voltar", style: "cancel" },
+        {
+          text: "Reativar",
+          onPress: () => {
+            void (async () => {
+              try {
+                await reactivateClient(client.id);
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                setSelected(null);
+                setClientStatus("active");
+                Alert.alert("Cliente reativado", `${client.name} voltou para a lista ativa.`);
+              } catch (err) {
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+                Alert.alert("Nao foi possivel reativar", err instanceof Error ? err.message : "Tente novamente.");
+              }
+            })();
+          },
+        },
+      ],
+    );
   };
 
   const handleExport = async () => {
@@ -229,6 +324,8 @@ export default function ClientsScreen() {
   };
 
   if (selected) {
+    const selectedIsInactive = !!selected.archivedAt;
+    const selectedHasAccess = !!(selected.hasAccess || selected.userId);
     const loyalty = getClientLoyalty(selected.id);
     const selectedCompletedAppointments = appointments
       .filter((appointment) => appointment.clientId === selected.id && appointment.status === "completed");
@@ -256,7 +353,7 @@ export default function ClientsScreen() {
           <TouchableOpacity onPress={() => setSelected(null)}>
             <Feather name="arrow-left" size={22} color={colors.foreground} />
           </TouchableOpacity>
-          <Text style={[styles.detailTitle, { color: colors.foreground }]}>Detalhes do Cliente</Text>
+          <Text style={[styles.detailTitle, { color: colors.foreground }]}>{selectedIsInactive ? "Cliente inativo" : "Detalhes do Cliente"}</Text>
           <View style={{ width: 22 }} />
         </View>
         <ScrollView
@@ -278,10 +375,37 @@ export default function ClientsScreen() {
               <Feather name="mail" size={14} color={colors.mutedForeground} />
               <Text style={[styles.contactText, { color: colors.mutedForeground }]}>{selected.email}</Text>
             </View>
-            <TouchableOpacity style={[styles.editClientBtn, { backgroundColor: colors.secondary }]} onPress={() => openEditClient(selected)}>
-              <Feather name="file-text" size={14} color={colors.foreground} />
-              <Text style={[styles.editClientBtnText, { color: colors.foreground }]}>Editar ficha</Text>
-            </TouchableOpacity>
+            {selectedHasAccess && (
+              <View style={[styles.accessBadge, { backgroundColor: colors.gold + "18", borderColor: colors.gold + "55" }]}>
+                <Feather name="key" size={12} color={colors.gold} />
+                <Text style={[styles.accessBadgeText, { color: colors.gold }]}>Acesso ativo</Text>
+              </View>
+            )}
+            <View style={styles.clientDetailActions}>
+              {selectedIsInactive ? (
+                <TouchableOpacity style={[styles.reactivateClientBtn, { backgroundColor: colors.gold, borderColor: colors.gold }]} onPress={() => confirmReactivateClient(selected)}>
+                  <Feather name="user-check" size={14} color={colors.goldForeground} />
+                  <Text style={[styles.reactivateClientBtnText, { color: colors.goldForeground }]}>Reativar</Text>
+                </TouchableOpacity>
+              ) : (
+                <>
+                  <TouchableOpacity style={[styles.editClientBtn, { backgroundColor: colors.secondary }]} onPress={() => openEditClient(selected)}>
+                    <Feather name="file-text" size={14} color={colors.foreground} />
+                    <Text style={[styles.editClientBtnText, { color: colors.foreground }]}>Editar ficha</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[styles.editClientBtn, { backgroundColor: colors.gold + "18" }]} onPress={() => openAccessClient(selected)}>
+                    <Feather name={selectedHasAccess ? "key" : "user-plus"} size={14} color={colors.gold} />
+                    <Text style={[styles.editClientBtnText, { color: colors.gold }]}>
+                      {selectedHasAccess ? "Redefinir senha" : "Criar acesso"}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[styles.archiveClientBtn, { backgroundColor: colors.secondary, borderColor: colors.border }]} onPress={() => confirmArchiveClient(selected)}>
+                    <Feather name="user-x" size={14} color={colors.foreground} />
+                    <Text style={[styles.archiveClientBtnText, { color: colors.foreground }]}>Inativar</Text>
+                  </TouchableOpacity>
+                </>
+              )}
+            </View>
           </View>
 
           <View style={styles.statsGrid}>
@@ -393,13 +517,15 @@ export default function ClientsScreen() {
                   {loyaltySettings.benefitDescription}
                 </Text>
               </View>
-              <TouchableOpacity
-                style={[styles.adjustBtn, { backgroundColor: colors.gold }]}
-                onPress={() => handleAdjustPoints(selected)}
-              >
-                <Feather name="edit-2" size={14} color={colors.goldForeground} />
-                <Text style={[styles.adjustBtnText, { color: colors.goldForeground }]}>Ajustar</Text>
-              </TouchableOpacity>
+              {!selectedIsInactive && (
+                <TouchableOpacity
+                  style={[styles.adjustBtn, { backgroundColor: colors.gold }]}
+                  onPress={() => handleAdjustPoints(selected)}
+                >
+                  <Feather name="edit-2" size={14} color={colors.goldForeground} />
+                  <Text style={[styles.adjustBtnText, { color: colors.goldForeground }]}>Ajustar</Text>
+                </TouchableOpacity>
+              )}
             </View>
 
             <View style={[styles.loyaltyTrack, { backgroundColor: colors.secondary }]}>
@@ -555,6 +681,54 @@ export default function ClientsScreen() {
             </ScrollView>
           </View>
         </Modal>
+        <Modal visible={accessOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setAccessOpen(false)}>
+          <View style={[styles.modal, { backgroundColor: colors.background }]}>
+            <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
+              <TouchableOpacity onPress={() => setAccessOpen(false)} disabled={savingAccess}>
+                <Feather name="x" size={22} color={colors.foreground} />
+              </TouchableOpacity>
+              <Text style={[styles.modalTitle, { color: colors.foreground }]}>
+                {selectedHasAccess ? "Redefinir acesso" : "Criar acesso"}
+              </Text>
+              <TouchableOpacity onPress={saveClientAccess} disabled={savingAccess}>
+                <Text style={[styles.modalSave, { color: savingAccess ? colors.mutedForeground : colors.gold }]}>
+                  {savingAccess ? "Salvando..." : "Salvar"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView contentContainerStyle={[styles.modalContent, { paddingBottom: insets.bottom + 30 }]}>
+              <View style={[styles.importInfo, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                <Feather name="key" size={18} color={colors.gold} />
+                <Text style={[styles.notesText, { color: colors.mutedForeground }]}>
+                  O cliente entra com o ID {barbershop?.slug ?? "do estabelecimento"}, email e senha inicial.
+                </Text>
+              </View>
+              <View>
+                <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>Email de acesso</Text>
+                <TextInput
+                  {...typedInputProps("email")}
+                  style={[styles.fieldInput, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.card }]}
+                  value={accessForm.email}
+                  onChangeText={(value) => setAccessForm((current) => ({ ...current, email: value.trim().toLowerCase() }))}
+                  placeholder="cliente@email.com"
+                  placeholderTextColor={colors.mutedForeground}
+                  autoCapitalize="none"
+                />
+              </View>
+              <View>
+                <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>Senha inicial</Text>
+                <TextInput
+                  {...typedInputProps("password")}
+                  style={[styles.fieldInput, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.card }]}
+                  value={accessForm.password}
+                  onChangeText={(value) => setAccessForm((current) => ({ ...current, password: value }))}
+                  placeholder="Minimo 8 caracteres"
+                  placeholderTextColor={colors.mutedForeground}
+                />
+              </View>
+            </ScrollView>
+          </View>
+        </Modal>
       </View>
     );
   }
@@ -563,7 +737,9 @@ export default function ClientsScreen() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { paddingTop: topPad + 16, borderBottomColor: colors.border }]}>
         <View style={styles.titleRow}>
-          <Text style={[styles.title, { color: colors.foreground }]}>Clientes ({clients.length})</Text>
+          <Text style={[styles.title, { color: colors.foreground }]}>
+            {clientStatus === "active" ? `Clientes (${clients.length})` : `Inativos (${inactiveClients.length})`}
+          </Text>
           <View style={styles.headerActions}>
             <TouchableOpacity style={[styles.headerBtn, { backgroundColor: colors.secondary }]} onPress={handleImport}>
               <Feather name="upload" size={14} color={colors.foreground} />
@@ -588,6 +764,23 @@ export default function ClientsScreen() {
             </TouchableOpacity>
           )}
         </View>
+        <View style={[styles.statusTabs, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          {([
+            ["active", `Ativos (${clients.length})`],
+            ["inactive", `Inativos (${inactiveClients.length})`],
+          ] as const).map(([status, label]) => {
+            const active = clientStatus === status;
+            return (
+              <TouchableOpacity
+                key={status}
+                style={[styles.statusTab, { backgroundColor: active ? colors.gold : "transparent" }]}
+                onPress={() => { setClientStatus(status); clientsPage.setPage(1); }}
+              >
+                <Text style={[styles.statusTabText, { color: active ? colors.goldForeground : colors.mutedForeground }]}>{label}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
       </View>
 
       <FlatList
@@ -597,6 +790,8 @@ export default function ClientsScreen() {
         showsVerticalScrollIndicator={false}
         renderItem={({ item }) => {
           const loyalty = getClientLoyalty(item.id);
+          const isInactive = !!item.archivedAt;
+          const inactiveSince = item.archivedAt ? new Date(item.archivedAt).toLocaleDateString("pt-BR") : "";
           return (
             <TouchableOpacity
               style={[styles.clientCard, { backgroundColor: colors.card, borderColor: colors.border }]}
@@ -612,19 +807,25 @@ export default function ClientsScreen() {
                 <Text style={[styles.clientName, { color: colors.foreground }]}>{item.name}</Text>
                 <Text style={[styles.clientPhone, { color: colors.mutedForeground }]}>{item.phone}</Text>
                 <Text style={[styles.clientMeta, { color: colors.mutedForeground }]}>
-                  {item.appointmentsCount} visitas · {formatCurrency(item.totalSpent)}
+                  {isInactive ? `Inativo desde ${inactiveSince}` : `${item.appointmentsCount} visitas · ${formatCurrency(item.totalSpent)}`}
                 </Text>
               </View>
               <View style={styles.clientRight}>
-                <TouchableOpacity
-                  style={[styles.loyaltyPill, { backgroundColor: loyalty.currentPoints >= loyaltySettings.requiredPoints ? colors.gold : colors.gold + "22" }]}
-                  onPress={() => handleAdjustPoints(item)}
-                >
-                  <Feather name="award" size={10} color={loyalty.currentPoints >= loyaltySettings.requiredPoints ? colors.goldForeground : colors.gold} />
-                  <Text style={[styles.loyaltyPillText, { color: loyalty.currentPoints >= loyaltySettings.requiredPoints ? colors.goldForeground : colors.gold }]}>
-                    {loyalty.currentPoints}/{loyaltySettings.requiredPoints}
-                  </Text>
-                </TouchableOpacity>
+                {isInactive ? (
+                  <View style={[styles.inactivePill, { backgroundColor: colors.secondary }]}>
+                    <Text style={[styles.inactivePillText, { color: colors.mutedForeground }]}>Inativo</Text>
+                  </View>
+                ) : (
+                  <TouchableOpacity
+                    style={[styles.loyaltyPill, { backgroundColor: loyalty.currentPoints >= loyaltySettings.requiredPoints ? colors.gold : colors.gold + "22" }]}
+                    onPress={() => handleAdjustPoints(item)}
+                  >
+                    <Feather name="award" size={10} color={loyalty.currentPoints >= loyaltySettings.requiredPoints ? colors.goldForeground : colors.gold} />
+                    <Text style={[styles.loyaltyPillText, { color: loyalty.currentPoints >= loyaltySettings.requiredPoints ? colors.goldForeground : colors.gold }]}>
+                      {loyalty.currentPoints}/{loyaltySettings.requiredPoints}
+                    </Text>
+                  </TouchableOpacity>
+                )}
                 <Feather name="chevron-right" size={16} color={colors.mutedForeground} />
               </View>
             </TouchableOpacity>
@@ -633,7 +834,9 @@ export default function ClientsScreen() {
         ListEmptyComponent={
           <View style={styles.empty}>
             <Feather name="users" size={40} color={colors.border} />
-            <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>Nenhum cliente encontrado</Text>
+            <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
+              {clientStatus === "active" ? "Nenhum cliente encontrado" : "Nenhum cliente inativo"}
+            </Text>
           </View>
         }
         ListFooterComponent={
@@ -693,6 +896,9 @@ const styles = StyleSheet.create({
   title: { fontSize: 24, fontFamily: "Inter_700Bold" },
   headerActions: { flexDirection: "row", gap: 8 },
   headerBtn: { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center" },
+  statusTabs: { flexDirection: "row", borderRadius: 12, borderWidth: 1, padding: 4, gap: 4 },
+  statusTab: { flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 9, borderRadius: 9 },
+  statusTabText: { fontSize: 13, fontFamily: "Inter_700Bold" },
   searchBox: {
     flexDirection: "row", alignItems: "center", gap: 10,
     paddingHorizontal: 14, paddingVertical: 12, borderRadius: 14, borderWidth: 1.5,
@@ -715,6 +921,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10,
   },
   loyaltyPillText: { fontSize: 11, fontFamily: "Inter_700Bold" },
+  inactivePill: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10 },
+  inactivePillText: { fontSize: 11, fontFamily: "Inter_700Bold" },
   empty: { alignItems: "center", paddingVertical: 60, gap: 10 },
   emptyText: { fontSize: 14, fontFamily: "Inter_400Regular" },
   // detail
@@ -732,8 +940,15 @@ const styles = StyleSheet.create({
   clientDetailName: { fontSize: 20, fontFamily: "Inter_700Bold" },
   contactRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   contactText: { fontSize: 14, fontFamily: "Inter_400Regular" },
-  editClientBtn: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, marginTop: 8 },
+  accessBadge: { flexDirection: "row", alignItems: "center", gap: 5, borderWidth: 1, borderRadius: 999, paddingHorizontal: 9, paddingVertical: 5, marginTop: 4 },
+  accessBadgeText: { fontSize: 11, fontFamily: "Inter_700Bold" },
+  editClientBtn: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10 },
   editClientBtnText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
+  clientDetailActions: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 8 },
+  archiveClientBtn: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, borderWidth: 1 },
+  archiveClientBtnText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
+  reactivateClientBtn: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, borderWidth: 1 },
+  reactivateClientBtnText: { fontSize: 13, fontFamily: "Inter_700Bold" },
   statsGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
   statBox: { flex: 1, minWidth: "45%", padding: 16, borderRadius: 14, borderWidth: 1, gap: 6 },
   statValue: { fontSize: 18, fontFamily: "Inter_700Bold" },

@@ -1,9 +1,19 @@
 import { Router, type IRouter, type Request, type Response } from "express";
-import { and, desc, eq, inArray, sql } from "drizzle-orm";
-import { db, clientsTable, loyaltyMovementsTable, loyaltySettingsTable, productOrdersTable, type Client } from "@workspace/db";
+import { and, desc, eq, inArray, isNotNull, isNull, ne, sql } from "drizzle-orm";
+import {
+  clientsTable,
+  db,
+  loyaltyMovementsTable,
+  loyaltySettingsTable,
+  productOrdersTable,
+  usersTable,
+  type Client,
+} from "@workspace/db";
 import { requireAuth, requireRole } from "../lib/auth";
 import { toBusinessDateString } from "../lib/dates";
-import { ClientCreate, ClientUpdate, LoyaltyAdjust, LoyaltySettingsUpdate } from "../lib/schemas";
+import { ClientAccessUpsert, ClientCreate, ClientUpdate, LoyaltyAdjust, LoyaltySettingsUpdate } from "../lib/schemas";
+import { hashPassword } from "../lib/password";
+import { passwordPolicyError } from "../lib/security";
 import { serializeClient, serializeLoyaltyMovement, serializeLoyaltySettings } from "../lib/serializers";
 
 const router: IRouter = Router();
@@ -35,6 +45,17 @@ async function productOrderTotalsByClient(shop: string) {
   return new Map(rows.map((row) => [row.clientId, Number(row.total) || 0]));
 }
 
+const cleanEmail = (value: string | null | undefined) => (value ?? "").trim().toLowerCase();
+const cleanText = (value: string | null | undefined) => (value ?? "").trim();
+const isEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+
+async function findUserByEmail(shop: string, email: string) {
+  const [user] = await db.select().from(usersTable)
+    .where(and(eq(usersTable.barbershopId, shop), eq(usersTable.email, email)))
+    .limit(1);
+  return user ?? null;
+}
+
 // Clients can only see their own row; admins/employees see all in tenant.
 router.get("/clients", async (req: Request, res: Response): Promise<void> => {
   const shop = req.auth!.barbershop.id;
@@ -43,11 +64,15 @@ router.get("/clients", async (req: Request, res: Response): Promise<void> => {
   if (auth.user.role === "client") {
     if (!auth.user.clientId) { res.json([]); return; }
     const rows = await db.select().from(clientsTable)
-      .where(and(eq(clientsTable.barbershopId, shop), eq(clientsTable.id, auth.user.clientId)));
+      .where(and(eq(clientsTable.barbershopId, shop), eq(clientsTable.id, auth.user.clientId), isNull(clientsTable.archivedAt)));
     res.json(rows.map((client) => serializeClientWithProductOrders(client, orderTotals.get(client.id) ?? 0)));
     return;
   }
-  const rows = await db.select().from(clientsTable).where(eq(clientsTable.barbershopId, shop));
+  const status = typeof req.query.status === "string" ? req.query.status : "active";
+  const rows = await db.select().from(clientsTable).where(and(
+    eq(clientsTable.barbershopId, shop),
+    status === "archived" ? isNotNull(clientsTable.archivedAt) : isNull(clientsTable.archivedAt),
+  ));
   res.json(rows.map((client) => serializeClientWithProductOrders(client, orderTotals.get(client.id) ?? 0)));
 });
 
@@ -117,7 +142,7 @@ function parseClientsCsv(csv: string) {
 
 router.get("/clients/export", requireRole("admin", "employee"), async (req: Request, res: Response): Promise<void> => {
   const shop = req.auth!.barbershop.id;
-  const rows = await db.select().from(clientsTable).where(eq(clientsTable.barbershopId, shop));
+  const rows = await db.select().from(clientsTable).where(and(eq(clientsTable.barbershopId, shop), isNull(clientsTable.archivedAt)));
   const orderTotals = await productOrderTotalsByClient(shop);
   const intakeKeys = Array.from(new Set(rows.flatMap((client) => Object.keys(serializeClientWithProductOrders(client, orderTotals.get(client.id) ?? 0).intakeData ?? {}))));
   const header = ["name", "phone", "email", "totalSpent", "productOrdersSpent", "birthDate", "notes", "allergies", "restrictions", "preferences", "emergencyContact", ...intakeKeys];
@@ -137,7 +162,7 @@ router.post("/clients/import", requireRole("admin", "employee"), async (req: Req
   if (!csv.trim()) { res.status(400).json({ error: "CSV vazio." }); return; }
   const rows = parseClientsCsv(csv).slice(0, 1000);
   const shop = req.auth!.barbershop.id;
-  const existing = await db.select().from(clientsTable).where(eq(clientsTable.barbershopId, shop));
+  const existing = await db.select().from(clientsTable).where(and(eq(clientsTable.barbershopId, shop), isNull(clientsTable.archivedAt)));
   const seenEmails = new Set(existing.map((client) => client.email.trim().toLowerCase()).filter(Boolean));
   const seenPhones = new Set(existing.map((client) => client.phone.trim()).filter(Boolean));
   let created = 0;
@@ -175,11 +200,27 @@ router.post("/clients", requireRole("admin", "employee"), async (req: Request, r
   const parsed = ClientCreate.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Dados inválidos" }); return; }
   const shop = req.auth!.barbershop.id;
-  const [row] = await db.insert(clientsTable).values({
+  const email = cleanEmail(parsed.data.email);
+  const phone = cleanText(parsed.data.phone);
+  const password = parsed.data.password?.trim() ?? "";
+
+  if (password) {
+    if (!email) { res.status(400).json({ error: "Email e obrigatorio para criar acesso do cliente." }); return; }
+    if (!isEmail(email)) { res.status(400).json({ error: "Informe um email valido para criar acesso." }); return; }
+    const passwordError = passwordPolicyError(password);
+    if (passwordError) { res.status(400).json({ error: passwordError }); return; }
+    const collision = await findUserByEmail(shop, email);
+    if (collision) {
+      res.status(409).json({ error: "Email ja esta em uso por outro usuario." });
+      return;
+    }
+  }
+
+  const values = {
     barbershopId: shop,
-    name: parsed.data.name,
-    phone: parsed.data.phone,
-    email: parsed.data.email,
+    name: parsed.data.name.trim(),
+    phone,
+    email,
     birthDate: parsed.data.birthDate ?? null,
     notes: parsed.data.notes ?? null,
     allergies: parsed.data.allergies,
@@ -187,8 +228,94 @@ router.post("/clients", requireRole("admin", "employee"), async (req: Request, r
     preferences: parsed.data.preferences,
     emergencyContact: parsed.data.emergencyContact,
     intakeData: parsed.data.intakeData,
-  }).returning();
+  };
+
+  const row = password
+    ? await db.transaction(async (tx) => {
+      const [client] = await tx.insert(clientsTable).values(values).returning();
+      const passwordHash = await hashPassword(password);
+      const [user] = await tx.insert(usersTable).values({
+        barbershopId: shop,
+        role: "client",
+        name: client.name,
+        email,
+        phone: client.phone || null,
+        passwordHash,
+        clientId: client.id,
+      }).returning();
+      const [linkedClient] = await tx.update(clientsTable)
+        .set({ userId: user.id })
+        .where(eq(clientsTable.id, client.id))
+        .returning();
+      return linkedClient;
+    })
+    : (await db.insert(clientsTable).values(values).returning())[0];
   res.status(201).json(serializeClientWithProductOrders(row, 0));
+});
+
+router.post("/clients/:id/access", requireRole("admin"), async (req: Request, res: Response): Promise<void> => {
+  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const parsed = ClientAccessUpsert.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Dados invalidos" }); return; }
+
+  const shop = req.auth!.barbershop.id;
+  const [client] = await db.select().from(clientsTable)
+    .where(and(eq(clientsTable.id, id), eq(clientsTable.barbershopId, shop), isNull(clientsTable.archivedAt)))
+    .limit(1);
+  if (!client) { res.status(404).json({ error: "Cliente nao encontrado." }); return; }
+
+  const email = cleanEmail(parsed.data.email ?? client.email);
+  if (!email) { res.status(400).json({ error: "Email e obrigatorio para criar acesso do cliente." }); return; }
+  if (!isEmail(email)) { res.status(400).json({ error: "Informe um email valido para criar acesso." }); return; }
+
+  const passwordError = passwordPolicyError(parsed.data.password);
+  if (passwordError) { res.status(400).json({ error: passwordError }); return; }
+
+  const [linkedUser] = client.userId
+    ? await db.select().from(usersTable)
+      .where(and(eq(usersTable.id, client.userId), eq(usersTable.barbershopId, shop)))
+      .limit(1)
+    : [];
+  if (linkedUser && linkedUser.role !== "client") {
+    res.status(409).json({ error: "Este cliente esta vinculado a um usuario que nao e cliente." });
+    return;
+  }
+
+  const emailUser = await findUserByEmail(shop, email);
+  if (emailUser && emailUser.id !== linkedUser?.id) {
+    if (emailUser.role !== "client" || (emailUser.clientId && emailUser.clientId !== client.id)) {
+      res.status(409).json({ error: "Email ja esta em uso por outro usuario." });
+      return;
+    }
+  }
+
+  const passwordHash = await hashPassword(parsed.data.password);
+  const targetUser = linkedUser ?? emailUser;
+  const row = await db.transaction(async (tx) => {
+    const userPatch = {
+      name: client.name,
+      email,
+      phone: client.phone || null,
+      passwordHash,
+      clientId: client.id,
+    };
+    const [user] = targetUser
+      ? await tx.update(usersTable).set(userPatch).where(eq(usersTable.id, targetUser.id)).returning()
+      : await tx.insert(usersTable).values({
+        barbershopId: shop,
+        role: "client",
+        ...userPatch,
+      }).returning();
+
+    const [updatedClient] = await tx.update(clientsTable)
+      .set({ userId: user.id, email })
+      .where(and(eq(clientsTable.id, client.id), eq(clientsTable.barbershopId, shop)))
+      .returning();
+    return updatedClient;
+  });
+
+  const orderTotals = await productOrderTotalsByClient(shop);
+  res.json(serializeClientWithProductOrders(row, orderTotals.get(row.id) ?? 0));
 });
 
 router.patch("/clients/:id", async (req: Request, res: Response): Promise<void> => {
@@ -201,11 +328,31 @@ router.patch("/clients/:id", async (req: Request, res: Response): Promise<void> 
     res.status(403).json({ error: "Acesso negado." });
     return;
   }
+  const [existingClient] = await db.select().from(clientsTable)
+    .where(and(eq(clientsTable.id, id), eq(clientsTable.barbershopId, shop), isNull(clientsTable.archivedAt)))
+    .limit(1);
+  if (!existingClient) { res.status(404).json({ error: "Cliente nao encontrado." }); return; }
   const updates: Record<string, unknown> = {};
   const data = parsed.data;
   if (data.name !== undefined) updates.name = data.name.trim();
-  if (data.phone !== undefined) updates.phone = data.phone.trim();
-  if (data.email !== undefined) updates.email = data.email.trim().toLowerCase();
+  if (data.phone !== undefined) updates.phone = cleanText(data.phone);
+  if (data.email !== undefined) {
+    const email = cleanEmail(data.email);
+    if (existingClient.userId && !email) { res.status(400).json({ error: "Email e obrigatorio para manter acesso do cliente." }); return; }
+    if (email && !isEmail(email)) { res.status(400).json({ error: "Informe um email valido." }); return; }
+    if (existingClient.userId && email) {
+      const collision = await db.select().from(usersTable).where(and(
+        eq(usersTable.barbershopId, shop),
+        eq(usersTable.email, email),
+        ne(usersTable.id, existingClient.userId),
+      )).limit(1);
+      if (collision.length > 0) {
+        res.status(409).json({ error: "Email ja esta em uso por outro usuario." });
+        return;
+      }
+    }
+    updates.email = email;
+  }
   if (data.birthDate !== undefined) updates.birthDate = data.birthDate || null;
   if (data.notes !== undefined) updates.notes = data.notes || null;
   if (data.allergies !== undefined) updates.allergies = data.allergies;
@@ -214,9 +361,58 @@ router.patch("/clients/:id", async (req: Request, res: Response): Promise<void> 
   if (data.emergencyContact !== undefined) updates.emergencyContact = data.emergencyContact;
   if (data.intakeData !== undefined) updates.intakeData = data.intakeData;
   const [row] = await db.update(clientsTable).set(updates)
-    .where(and(eq(clientsTable.id, id), eq(clientsTable.barbershopId, shop)))
+    .where(and(eq(clientsTable.id, id), eq(clientsTable.barbershopId, shop), isNull(clientsTable.archivedAt)))
     .returning();
   if (!row) { res.status(404).json({ error: "Cliente nao encontrado." }); return; }
+  if (existingClient.userId) {
+    const userPatch: Record<string, unknown> = {};
+    if (data.name !== undefined) userPatch.name = data.name.trim();
+    if (data.phone !== undefined) userPatch.phone = cleanText(data.phone) || null;
+    if (data.email !== undefined) userPatch.email = cleanEmail(data.email);
+    if (Object.keys(userPatch).length > 0) {
+      await db.update(usersTable).set(userPatch)
+        .where(and(eq(usersTable.id, existingClient.userId), eq(usersTable.barbershopId, shop), eq(usersTable.role, "client")));
+    }
+  }
+  const orderTotals = await productOrderTotalsByClient(shop);
+  res.json(serializeClientWithProductOrders(row, orderTotals.get(row.id) ?? 0));
+});
+
+async function archiveClient(req: Request, res: Response): Promise<void> {
+  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const shop = req.auth!.barbershop.id;
+
+  const [client] = await db.select({ id: clientsTable.id }).from(clientsTable)
+    .where(and(eq(clientsTable.id, id), eq(clientsTable.barbershopId, shop), isNull(clientsTable.archivedAt)))
+    .limit(1);
+  if (!client) {
+    res.status(404).json({ error: "Cliente nao encontrado." });
+    return;
+  }
+
+  await db.update(clientsTable)
+    .set({ archivedAt: new Date() })
+    .where(and(eq(clientsTable.id, id), eq(clientsTable.barbershopId, shop)));
+
+  res.json({ archived: true });
+}
+
+router.patch("/clients/:id/archive", requireRole("admin"), archiveClient);
+router.delete("/clients/:id", requireRole("admin"), archiveClient);
+
+router.patch("/clients/:id/reactivate", requireRole("admin"), async (req: Request, res: Response): Promise<void> => {
+  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const shop = req.auth!.barbershop.id;
+
+  const [row] = await db.update(clientsTable)
+    .set({ archivedAt: null })
+    .where(and(eq(clientsTable.id, id), eq(clientsTable.barbershopId, shop), isNotNull(clientsTable.archivedAt)))
+    .returning();
+  if (!row) {
+    res.status(404).json({ error: "Cliente inativo nao encontrado." });
+    return;
+  }
+
   const orderTotals = await productOrderTotalsByClient(shop);
   res.json(serializeClientWithProductOrders(row, orderTotals.get(row.id) ?? 0));
 });
@@ -231,7 +427,7 @@ router.get("/clients/:id/loyalty", async (req: Request, res: Response): Promise<
     return;
   }
   const [client] = await db.select().from(clientsTable)
-    .where(and(eq(clientsTable.id, id), eq(clientsTable.barbershopId, shop))).limit(1);
+    .where(and(eq(clientsTable.id, id), eq(clientsTable.barbershopId, shop), isNull(clientsTable.archivedAt))).limit(1);
   if (!client) { res.status(404).json({ error: "Cliente não encontrado." }); return; }
   const [settings] = await db.select().from(loyaltySettingsTable)
     .where(eq(loyaltySettingsTable.barbershopId, shop)).limit(1);
@@ -252,7 +448,7 @@ router.post("/clients/:id/loyalty/adjust", requireRole("admin"), async (req: Req
   if (!parsed.success) { res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Dados inválidos" }); return; }
   const shop = req.auth!.barbershop.id;
   const [client] = await db.select().from(clientsTable)
-    .where(and(eq(clientsTable.id, id), eq(clientsTable.barbershopId, shop))).limit(1);
+    .where(and(eq(clientsTable.id, id), eq(clientsTable.barbershopId, shop), isNull(clientsTable.archivedAt))).limit(1);
   if (!client) { res.status(404).json({ error: "Cliente não encontrado." }); return; }
   const [settings] = await db.select().from(loyaltySettingsTable)
     .where(eq(loyaltySettingsTable.barbershopId, shop)).limit(1);

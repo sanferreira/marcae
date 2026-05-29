@@ -1,5 +1,5 @@
 import { Router, type IRouter, type Request, type Response } from "express";
-import { and, eq, ne } from "drizzle-orm";
+import { and, eq, isNull, ne } from "drizzle-orm";
 import { db, barbershopsTable, usersTable, clientsTable, loyaltySettingsTable, professionalsTable } from "@workspace/db";
 import {
   RegisterShopBody,
@@ -8,7 +8,7 @@ import {
   LoginResponse,
   GetMeResponse,
 } from "@workspace/api-zod";
-import { SelfProfileUpdate } from "../lib/schemas";
+import { AuthPasswordChange, SelfProfileUpdate } from "../lib/schemas";
 import { hashPassword, verifyPassword } from "../lib/password";
 import { createSession, destroySession, isCookieAuthEnabled, SESSION_COOKIE } from "../lib/sessions";
 import { passwordPolicyError, rateLimit } from "../lib/security";
@@ -134,23 +134,56 @@ router.post("/auth/register-client", authWriteLimiter, async (req: Request, res:
     res.status(409).json({ error: "Já existe usuário com esse email neste estabelecimento." });
     return;
   }
+  const phone = parsed.data.phone.trim();
+  const [existingByEmail] = await db.select().from(clientsTable)
+    .where(and(eq(clientsTable.barbershopId, shop.id), eq(clientsTable.email, email), isNull(clientsTable.archivedAt)))
+    .limit(1);
+  const [existingByPhone] = existingByEmail || !phone
+    ? []
+    : await db.select().from(clientsTable)
+      .where(and(eq(clientsTable.barbershopId, shop.id), eq(clientsTable.phone, phone), isNull(clientsTable.archivedAt)))
+      .limit(1);
+  const existingClient = existingByEmail ?? existingByPhone;
+  if (existingClient?.userId) {
+    res.status(409).json({ error: "Este cliente ja possui acesso. Use o login ou redefina a senha com o estabelecimento." });
+    return;
+  }
+
   const passwordHash = await hashPassword(parsed.data.password);
-  const [client] = await db.insert(clientsTable).values({
-    barbershopId: shop.id,
-    name: parsed.data.name.trim(),
-    phone: parsed.data.phone,
-    email,
-  }).returning();
-  const [user] = await db.insert(usersTable).values({
-    barbershopId: shop.id,
-    role: "client",
-    name: parsed.data.name.trim(),
-    email,
-    phone: parsed.data.phone,
-    passwordHash,
-    clientId: client.id,
-  }).returning();
-  await db.update(clientsTable).set({ userId: user.id }).where(eq(clientsTable.id, client.id));
+  const { user } = await db.transaction(async (tx) => {
+    const [clientRow] = existingClient
+      ? await tx.update(clientsTable).set({
+        name: parsed.data.name.trim(),
+        phone,
+        email,
+      }).where(and(eq(clientsTable.id, existingClient.id), eq(clientsTable.barbershopId, shop.id))).returning()
+      : await tx.insert(clientsTable).values({
+        barbershopId: shop.id,
+        name: parsed.data.name.trim(),
+        phone,
+        email,
+      }).returning();
+    const [userRow] = await tx.insert(usersTable).values({
+      barbershopId: shop.id,
+      role: "client",
+      name: parsed.data.name.trim(),
+      email,
+      phone,
+      passwordHash,
+      clientId: clientRow.id,
+    }).returning();
+    await tx.update(clientsTable).set({ userId: userRow.id }).where(eq(clientsTable.id, clientRow.id));
+    return { user: userRow };
+  });
+  if (user.role === "client" && user.clientId) {
+    const [activeClient] = await db.select({ id: clientsTable.id }).from(clientsTable)
+      .where(and(eq(clientsTable.id, user.clientId), eq(clientsTable.barbershopId, shop.id), isNull(clientsTable.archivedAt)))
+      .limit(1);
+    if (!activeClient) {
+      res.status(403).json({ error: "Cliente inativo. Fale com o estabelecimento para reativar o acesso." });
+      return;
+    }
+  }
   const token = await createSession(user.id);
   setSessionCookie(res, token);
   res.status(201).json(LoginResponse.parse(buildSession(token, user, shop)));
@@ -180,6 +213,15 @@ router.post("/auth/login", loginLimiter, async (req: Request, res: Response): Pr
   if (!ok) {
     res.status(401).json({ error: "Usuário ou senha inválidos." });
     return;
+  }
+  if (user.role === "client" && user.clientId) {
+    const [activeClient] = await db.select({ id: clientsTable.id }).from(clientsTable)
+      .where(and(eq(clientsTable.id, user.clientId), eq(clientsTable.barbershopId, shop.id), isNull(clientsTable.archivedAt)))
+      .limit(1);
+    if (!activeClient) {
+      res.status(403).json({ error: "Cliente inativo. Fale com o estabelecimento para reativar o acesso." });
+      return;
+    }
   }
   const token = await createSession(user.id);
   setSessionCookie(res, token);
@@ -267,6 +309,34 @@ router.patch("/auth/me", requireAuth, async (req: Request, res: Response): Promi
   }
 
   res.json(GetMeResponse.parse(buildSession(auth.token, updatedUser, auth.barbershop)));
+});
+
+router.patch("/auth/password", requireAuth, authWriteLimiter, async (req: Request, res: Response): Promise<void> => {
+  const parsed = AuthPasswordChange.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Dados invalidos." });
+    return;
+  }
+
+  const auth = req.auth!;
+  const currentOk = await verifyPassword(parsed.data.currentPassword, auth.user.passwordHash);
+  if (!currentOk) {
+    res.status(401).json({ error: "Senha atual invalida." });
+    return;
+  }
+
+  const passwordError = passwordPolicyError(parsed.data.newPassword);
+  if (passwordError) {
+    res.status(400).json({ error: passwordError });
+    return;
+  }
+
+  const passwordHash = await hashPassword(parsed.data.newPassword);
+  await db.update(usersTable)
+    .set({ passwordHash })
+    .where(and(eq(usersTable.id, auth.user.id), eq(usersTable.barbershopId, auth.barbershop.id)));
+
+  res.json({ ok: true });
 });
 
 router.get(["/barbershops/:slug/exists", "/establishments/:slug/exists"], async (req: Request, res: Response): Promise<void> => {

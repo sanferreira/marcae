@@ -1,4 +1,5 @@
 import { Feather } from "@expo/vector-icons";
+import { Image } from "expo-image";
 import * as Haptics from "expo-haptics";
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
@@ -17,7 +18,7 @@ const CATEGORY_ICONS: Record<string, React.ComponentProps<typeof Feather>["name"
   Cabelo: "scissors",
   Barba: "user",
   Combo: "star",
-  Estética: "zap",
+  "Estética": "zap",
   Tratamento: "package",
   Tatuagem: "edit-3",
   Piercing: "circle",
@@ -46,13 +47,12 @@ export function ServiceCard({ service, selected, onPress, showAdmin }: Props) {
       onPress={handlePress}
       activeOpacity={0.75}
     >
-      <View
-        style={[
-          styles.iconBox,
-          { backgroundColor: selected ? colors.gold : colors.secondary },
-        ]}
-      >
-        <Feather name={icon} size={18} color={selected ? colors.primaryForeground : colors.mutedForeground} />
+      <View style={[styles.mediaBox, { backgroundColor: selected ? colors.gold + "18" : colors.secondary }]}>
+        {service.imageUrl ? (
+          <Image source={{ uri: service.imageUrl }} style={styles.mediaImage} contentFit="cover" transition={120} />
+        ) : (
+          <Feather name={icon} size={20} color={selected ? colors.gold : colors.mutedForeground} />
+        )}
       </View>
       <View style={styles.content}>
         <Text style={[styles.name, { color: colors.foreground }]}>{service.name}</Text>
@@ -82,19 +82,21 @@ const styles = StyleSheet.create({
   card: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 14,
+    padding: 10,
     borderRadius: 14,
     borderWidth: 1.5,
     marginBottom: 10,
     gap: 12,
   },
-  iconBox: {
-    width: 44,
-    height: 44,
+  mediaBox: {
+    width: 72,
+    height: 72,
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
+    overflow: "hidden",
   },
+  mediaImage: { width: "100%", height: "100%" },
   content: {
     flex: 1,
     gap: 3,

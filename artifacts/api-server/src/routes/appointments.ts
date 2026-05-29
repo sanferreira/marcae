@@ -109,6 +109,7 @@ router.post("/appointments", async (req: Request, res: Response): Promise<void> 
     .where(and(
       eq(clientsTable.id, parsed.data.clientId),
       eq(clientsTable.barbershopId, shop),
+      isNull(clientsTable.archivedAt),
     ))
     .limit(1);
   if (!clientRow) {

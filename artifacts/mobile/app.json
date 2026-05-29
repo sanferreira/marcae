@@ -1,11 +1,11 @@
 {
   "expo": {
     "name": "Marcaê",
-    "slug": "mobile",
+    "slug": "marcae",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "mobile",
+    "scheme": "marcae",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
@@ -16,7 +16,17 @@
     "ios": {
       "supportsTablet": false
     },
-    "android": {},
+    "android": {
+      "package": "net.marcae.app",
+      "versionCode": 1,
+      "permissions": [
+        "POST_NOTIFICATIONS"
+      ],
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/icon.png",
+        "backgroundColor": "#F5F1E8"
+      }
+    },
     "web": {
       "favicon": "./assets/images/icon.png"
     },
@@ -28,11 +38,17 @@
         }
       ],
       "expo-font",
+      "expo-notifications",
       "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "831ee027-11a6-4d69-a46d-5278af1a7691"
+      }
     }
   }
 }

@@ -100,6 +100,7 @@ interface AuthContextType {
   cancelSubscription: () => Promise<void>;
   updateBarbershop: (patch: { name?: string; phone?: string | null; address?: string | null; brandPrimary?: string; brandAccent?: string; bookingBufferMinutes?: number; bookingAvailabilityMode?: "duration_buffer" | "release_on_complete"; businessSchedule?: BusinessSchedule; intakeFields?: IntakeField[] }) => Promise<{ ok: boolean; error?: string }>;
   updateProfile: (patch: { name?: string; email?: string; phone?: string | null; avatar?: string; avatarImage?: string | null; specialty?: string; bio?: string }) => Promise<{ ok: boolean; error?: string }>;
+  updatePassword: (currentPassword: string, newPassword: string) => Promise<{ ok: boolean; error?: string }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -240,6 +241,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { ok: true };
   }, []);
 
+  const updatePassword: AuthContextType["updatePassword"] = useCallback(async (currentPassword, newPassword) => {
+    const r = await apiFetch<{ ok: boolean }>("/auth/password", { method: "PATCH", body: { currentPassword, newPassword } });
+    if (!r.ok) return { ok: false, error: r.error };
+    return { ok: true };
+  }, []);
+
   return (
     <AuthContext.Provider value={{
       user: session?.user ?? null,
@@ -251,7 +258,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       registerBarbershop, registerClient,
       upsertEmployeeUser, removeEmployeeUser,
       upgradeToPremium, openBillingPortal, refreshSession, cancelSubscription,
-      updateBarbershop, updateProfile,
+      updateBarbershop, updateProfile, updatePassword,
     }}>
       {children}
     </AuthContext.Provider>

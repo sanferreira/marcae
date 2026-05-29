@@ -30,6 +30,7 @@ router.post("/services", requireRole("admin"), async (req: Request, res: Respons
     loyaltyPoints: parsed.data.loyaltyPoints,
     description: parsed.data.description,
     category: parsed.data.category,
+    imageUrl: parsed.data.imageUrl ?? null,
     isActive: parsed.data.isActive,
   }).returning();
   res.status(201).json(serializeService(row));
@@ -50,6 +51,7 @@ router.patch("/services/:id", requireRole("admin"), async (req: Request, res: Re
   if (parsed.data.loyaltyPoints !== undefined) updates.loyaltyPoints = parsed.data.loyaltyPoints;
   if (parsed.data.description !== undefined) updates.description = parsed.data.description;
   if (parsed.data.category !== undefined) updates.category = parsed.data.category;
+  if (parsed.data.imageUrl !== undefined) updates.imageUrl = parsed.data.imageUrl ?? null;
   if (parsed.data.isActive !== undefined) updates.isActive = parsed.data.isActive;
   const [row] = await db.update(servicesTable).set(updates)
     .where(and(eq(servicesTable.id, id), eq(servicesTable.barbershopId, shop)))

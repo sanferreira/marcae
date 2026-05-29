@@ -3,7 +3,12 @@ import { Platform } from "react-native";
 
 const MAX_DATA_URI_LENGTH = 1_200_000;
 
-export async function pickAvatarImage(): Promise<string | null> {
+type PickImageOptions = {
+  aspect?: [number, number];
+  quality?: number;
+};
+
+async function pickImage({ aspect = [1, 1], quality = 0.6 }: PickImageOptions = {}): Promise<string | null> {
   if (Platform.OS !== "web") {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
@@ -14,8 +19,8 @@ export async function pickAvatarImage(): Promise<string | null> {
   const result = await ImagePicker.launchImageLibraryAsync({
     mediaTypes: ImagePicker.MediaTypeOptions.Images,
     allowsEditing: true,
-    aspect: [1, 1],
-    quality: 0.6,
+    aspect,
+    quality,
     base64: true,
   });
 
@@ -41,4 +46,12 @@ export async function pickAvatarImage(): Promise<string | null> {
   }
 
   return dataUri;
+}
+
+export async function pickAvatarImage(): Promise<string | null> {
+  return pickImage({ aspect: [1, 1], quality: 0.6 });
+}
+
+export async function pickServiceImage(): Promise<string | null> {
+  return pickImage({ aspect: [4, 3], quality: 0.65 });
 }

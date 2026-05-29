@@ -22,7 +22,7 @@ import { useColors } from "@/hooks/useColors";
 import { usePagination } from "@/hooks/usePagination";
 import { addLocalDays, toLocalDateString } from "@/lib/dates";
 import { typedInputProps } from "@/lib/inputProps";
-import { maskPhone } from "@/lib/masks";
+import { maskPhone, passwordPolicyError } from "@/lib/masks";
 
 const DAYS = Array.from({ length: 14 }, (_, i) => addLocalDays(i - 3));
 const BOOKING_DATES = Array.from({ length: 21 }, (_, i) => addLocalDays(i));
@@ -106,6 +106,7 @@ export default function AgendaScreen() {
   const [quickClientName, setQuickClientName] = useState("");
   const [quickClientPhone, setQuickClientPhone] = useState("");
   const [quickClientEmail, setQuickClientEmail] = useState("");
+  const [quickClientPassword, setQuickClientPassword] = useState("");
   const [selectedServices, setSelectedServices] = useState<Service[]>([]);
   const [selectedProfId, setSelectedProfId] = useState("");
   const [bookingDate, setBookingDate] = useState(BOOKING_DATES[0]);
@@ -194,6 +195,7 @@ export default function AgendaScreen() {
     setQuickClientName("");
     setQuickClientPhone("");
     setQuickClientEmail("");
+    setQuickClientPassword("");
     setSelectedServices([]);
     setSelectedProfId("");
     setBookingDate(BOOKING_DATES[0]);
@@ -231,6 +233,7 @@ export default function AgendaScreen() {
     setQuickClientName("");
     setQuickClientPhone("");
     setQuickClientEmail("");
+    setQuickClientPassword("");
   };
 
   const handleBookingBack = () => {
@@ -250,6 +253,15 @@ export default function AgendaScreen() {
       }
       if (quickClientEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(quickClientEmail.trim())) {
         Alert.alert("Email invalido", "Revise o email do cliente ou deixe em branco.");
+        return;
+      }
+      if (quickClientPassword.trim() && !quickClientEmail.trim()) {
+        Alert.alert("Email obrigatorio", "Informe o email para criar acesso do cliente.");
+        return;
+      }
+      const passwordError = quickClientPassword.trim() ? passwordPolicyError(quickClientPassword) : "";
+      if (passwordError) {
+        Alert.alert("Senha insegura", passwordError);
         return;
       }
       setBookingStep("services");
@@ -304,6 +316,7 @@ export default function AgendaScreen() {
           preferences: "",
           emergencyContact: "",
           intakeData: {},
+          password: quickClientPassword.trim() || undefined,
         });
       }
 
@@ -489,6 +502,17 @@ export default function AgendaScreen() {
                       placeholderTextColor={colors.mutedForeground}
                       style={[styles.fieldInput, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]}
                       {...typedInputProps("email")}
+                    />
+                    <TextInput
+                      value={quickClientPassword}
+                      onChangeText={(value) => {
+                        setQuickClientPassword(value);
+                        if (value.trim()) setSelectedClientId("");
+                      }}
+                      placeholder="Senha inicial opcional"
+                      placeholderTextColor={colors.mutedForeground}
+                      style={[styles.fieldInput, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]}
+                      {...typedInputProps("password")}
                     />
                   </View>
                 </View>

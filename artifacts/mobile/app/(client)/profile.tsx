@@ -24,7 +24,7 @@ import { useData } from "@/contexts/DataContext";
 import { useColors } from "@/hooks/useColors";
 import { pickAvatarImage } from "@/lib/avatarUpload";
 import { typedInputProps } from "@/lib/inputProps";
-import { isValidEmail, maskPhone } from "@/lib/masks";
+import { isValidEmail, maskPhone, passwordPolicyError } from "@/lib/masks";
 
 const formatCurrency = (value: number) =>
   value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -34,6 +34,12 @@ type ProfileForm = {
   email: string;
   phone: string;
   avatarImage: string | null;
+};
+
+type PasswordForm = {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
 };
 
 type ShortcutTarget = "appointments" | "completed" | "loyalty";
@@ -52,7 +58,7 @@ export default function ProfileScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { user, logout, updateProfile } = useAuth();
+  const { user, logout, updateProfile, updatePassword } = useAuth();
   const { appointments, clients, clientPackages, productOrders, getClientLoyalty } = useData();
 
   const topPad = insets.top;
@@ -85,6 +91,13 @@ export default function ProfileScreen() {
   const [editOpen, setEditOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<ProfileForm>(currentForm);
+  const [passwordOpen, setPasswordOpen] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
+  const [passwordForm, setPasswordForm] = useState<PasswordForm>({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
 
   const openEditor = () => {
     setForm(currentForm);
@@ -94,6 +107,16 @@ export default function ProfileScreen() {
   const closeEditor = () => {
     if (saving) return;
     setEditOpen(false);
+  };
+
+  const openPasswordEditor = () => {
+    setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+    setPasswordOpen(true);
+  };
+
+  const closePasswordEditor = () => {
+    if (savingPassword) return;
+    setPasswordOpen(false);
   };
 
   const setField = (field: keyof ProfileForm, value: string) => {
@@ -165,6 +188,41 @@ export default function ProfileScreen() {
     setEditOpen(false);
   };
 
+  const savePassword = async () => {
+    const currentPassword = passwordForm.currentPassword;
+    const newPassword = passwordForm.newPassword;
+
+    if (!currentPassword) {
+      Alert.alert("Senha atual", "Informe sua senha atual.");
+      return;
+    }
+
+    const passwordError = newPassword ? passwordPolicyError(newPassword) : "Informe a nova senha.";
+    if (passwordError) {
+      Alert.alert("Senha insegura", passwordError);
+      return;
+    }
+
+    if (newPassword !== passwordForm.confirmPassword) {
+      Alert.alert("Senhas diferentes", "Confirme a nova senha digitando o mesmo valor.");
+      return;
+    }
+
+    setSavingPassword(true);
+    const result = await updatePassword(currentPassword, newPassword);
+    setSavingPassword(false);
+
+    if (!result.ok) {
+      Alert.alert("Nao foi possivel alterar", result.error ?? "Tente novamente.");
+      return;
+    }
+
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    setPasswordOpen(false);
+    setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+    Alert.alert("Senha alterada", "Use a nova senha no proximo login.");
+  };
+
   const runLogout = async () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     await logout();
@@ -224,6 +282,15 @@ export default function ProfileScreen() {
         >
           <Feather name="edit-2" size={16} color={colors.goldForeground} />
           <Text style={[styles.editBtnText, { color: colors.goldForeground }]}>Editar perfil</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.passwordBtn, { borderColor: colors.border, backgroundColor: colors.card }]}
+          onPress={openPasswordEditor}
+          activeOpacity={0.82}
+        >
+          <Feather name="key" size={16} color={colors.gold} />
+          <Text style={[styles.passwordBtnText, { color: colors.foreground }]}>Alterar senha</Text>
         </TouchableOpacity>
 
         <View style={styles.statsRow}>
@@ -412,6 +479,81 @@ export default function ProfileScreen() {
           </View>
         </View>
       </Modal>
+
+      <Modal
+        visible={passwordOpen}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={closePasswordEditor}
+      >
+        <View style={[styles.modal, { backgroundColor: colors.background }]}>
+          <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
+            <TouchableOpacity onPress={closePasswordEditor} disabled={savingPassword}>
+              <Feather name="x" size={22} color={colors.foreground} />
+            </TouchableOpacity>
+            <Text style={[styles.modalTitle, { color: colors.foreground }]}>Alterar senha</Text>
+            <View style={{ width: 22 }} />
+          </View>
+
+          <KeyboardAwareScrollViewCompat
+            contentContainerStyle={[styles.modalContent, { paddingBottom: botPad + 140 }]}
+            keyboardShouldPersistTaps="handled"
+          >
+            <View>
+              <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>Senha atual</Text>
+              <TextInput
+                value={passwordForm.currentPassword}
+                onChangeText={(value) => setPasswordForm((prev) => ({ ...prev, currentPassword: value }))}
+                style={[styles.fieldInput, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.card }]}
+                placeholder="Sua senha atual"
+                placeholderTextColor={colors.mutedForeground}
+                {...typedInputProps("password")}
+              />
+            </View>
+
+            <View>
+              <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>Nova senha</Text>
+              <TextInput
+                value={passwordForm.newPassword}
+                onChangeText={(value) => setPasswordForm((prev) => ({ ...prev, newPassword: value }))}
+                style={[styles.fieldInput, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.card }]}
+                placeholder="Minimo 8 caracteres"
+                placeholderTextColor={colors.mutedForeground}
+                {...typedInputProps("password")}
+              />
+            </View>
+
+            <View>
+              <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>Confirmar nova senha</Text>
+              <TextInput
+                value={passwordForm.confirmPassword}
+                onChangeText={(value) => setPasswordForm((prev) => ({ ...prev, confirmPassword: value }))}
+                style={[styles.fieldInput, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.card }]}
+                placeholder="Digite novamente"
+                placeholderTextColor={colors.mutedForeground}
+                {...typedInputProps("password")}
+              />
+            </View>
+          </KeyboardAwareScrollViewCompat>
+
+          <View style={[styles.modalFooter, { borderTopColor: colors.border, backgroundColor: colors.background, paddingBottom: botPad + 16 }]}>
+            <TouchableOpacity
+              style={[styles.saveBtn, { backgroundColor: colors.gold, opacity: savingPassword ? 0.85 : 1 }]}
+              onPress={savePassword}
+              disabled={savingPassword}
+            >
+              {savingPassword ? (
+                <ActivityIndicator color={colors.goldForeground} />
+              ) : (
+                <>
+                  <Feather name="check" size={16} color={colors.goldForeground} />
+                  <Text style={[styles.saveBtnText, { color: colors.goldForeground }]}>Salvar nova senha</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -441,6 +583,16 @@ const styles = StyleSheet.create({
     borderRadius: 14,
   },
   editBtnText: { fontSize: 15, fontFamily: "Inter_700Bold" },
+  passwordBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+  },
+  passwordBtnText: { fontSize: 15, fontFamily: "Inter_700Bold" },
   statsRow: { flexDirection: "row", gap: 10 },
   statBox: {
     flex: 1,

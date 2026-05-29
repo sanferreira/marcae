@@ -185,6 +185,7 @@ export function serializeService(s: Service) {
     name: s.name, price: num(s.price), duration: s.duration,
     loyaltyPoints: (s as Service & { loyaltyPoints?: number }).loyaltyPoints ?? 1,
     description: s.description, category: s.category, isActive: s.isActive,
+    imageUrl: (s as Service & { imageUrl?: string | null }).imageUrl ?? null,
   };
 }
 
@@ -221,11 +222,14 @@ export function serializeProfessional(p: Professional, serviceIds: string[] = []
 export function serializeClient(c: Client) {
   return {
     id: c.id, barbershopId: c.barbershopId,
+    userId: c.userId ?? null,
+    hasAccess: !!c.userId,
     name: c.name, phone: c.phone, email: c.email,
     birthDate: c.birthDate ?? undefined,
     totalSpent: num(c.totalSpent),
     appointmentsCount: c.appointmentsCount,
     lastVisit: c.lastVisit ?? undefined,
+    archivedAt: c.archivedAt?.toISOString(),
     loyaltyPoints: c.loyaltyPoints,
     notes: c.notes ?? undefined,
     allergies: (c as Client & { allergies?: string }).allergies ?? "",

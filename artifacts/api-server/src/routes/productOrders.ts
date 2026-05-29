@@ -1,5 +1,5 @@
 import { Router, type IRouter, type Request, type Response } from "express";
-import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import {
   appointmentsTable,
   cashEntriesTable,
@@ -23,11 +23,16 @@ const router: IRouter = Router();
 router.use(requireAuth);
 
 async function resolveClientIdentity(shop: string, user: User): Promise<{ id: string; name: string } | null> {
-  if (user.clientId) return { id: user.clientId, name: user.name };
+  if (user.clientId) {
+    const [client] = await db.select().from(clientsTable)
+      .where(and(eq(clientsTable.barbershopId, shop), eq(clientsTable.id, user.clientId), isNull(clientsTable.archivedAt)))
+      .limit(1);
+    return client ? { id: client.id, name: client.name || user.name } : null;
+  }
 
   const email = user.email.trim().toLowerCase();
   const [client] = await db.select().from(clientsTable)
-    .where(and(eq(clientsTable.barbershopId, shop), eq(clientsTable.email, email)))
+    .where(and(eq(clientsTable.barbershopId, shop), eq(clientsTable.email, email), isNull(clientsTable.archivedAt)))
     .limit(1);
   if (!client) return null;
 

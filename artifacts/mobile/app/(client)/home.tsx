@@ -1,4 +1,5 @@
 import { Feather } from "@expo/vector-icons";
+import { Image as ExpoImage } from "expo-image";
 import * as Haptics from "expo-haptics";
 import React, { useMemo, useState } from "react";
 import {
@@ -30,6 +31,17 @@ type BookingStep = "services" | "professional" | "datetime" | "confirm";
 const DATES = Array.from({ length: 14 }, (_, i) => addLocalDays(i + 1));
 
 const JS_DAY_KEYS = ["dom", "seg", "ter", "qua", "qui", "sex", "sab"] as const;
+
+const SERVICE_CATEGORY_ICONS: Record<string, React.ComponentProps<typeof Feather>["name"]> = {
+  Cabelo: "scissors",
+  Barba: "user",
+  Combo: "star",
+  "Estética": "zap",
+  Tratamento: "package",
+  Tatuagem: "edit-3",
+  Piercing: "circle",
+  Consulta: "clipboard",
+};
 
 const formatCurrency = (value: number) =>
   value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -311,7 +323,7 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
-          <View>
+          <View style={styles.headerText}>
             <Text style={[styles.greeting, { color: colors.mutedForeground }]}>
               Olá, {user?.name.split(" ")[0]}
             </Text>
@@ -342,21 +354,14 @@ export default function HomeScreen() {
         </TouchableOpacity>
 
         <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Serviços</Text>
-        <View style={styles.servicesGrid}>
+        <View style={styles.serviceList}>
           {activeServices.map((service) => (
-            <TouchableOpacity
+            <ServiceShowcaseCard
               key={service.id}
-              style={[styles.serviceChip, { backgroundColor: colors.card, borderColor: colors.border }]}
+              service={service}
+              colors={colors}
               onPress={() => openBookingWithService(service)}
-              activeOpacity={0.75}
-            >
-              <Text style={[styles.serviceChipName, { color: colors.foreground }]}>
-                {service.name}
-              </Text>
-              <Text style={[styles.serviceChipPrice, { color: colors.gold }]}>
-                {formatCurrency(service.price)}
-              </Text>
-            </TouchableOpacity>
+            />
           ))}
         </View>
 
@@ -685,6 +690,50 @@ export default function HomeScreen() {
   );
 }
 
+function ServiceShowcaseCard({ service, colors, onPress }: { service: Service; colors: any; onPress: () => void }) {
+  const icon = SERVICE_CATEGORY_ICONS[service.category] ?? "briefcase";
+
+  return (
+    <TouchableOpacity
+      style={[styles.serviceShowcaseCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+      onPress={onPress}
+      activeOpacity={0.78}
+    >
+      <View style={[styles.serviceShowcaseMedia, { backgroundColor: colors.secondary }]}>
+        {service.imageUrl ? (
+          <ExpoImage source={{ uri: service.imageUrl }} style={styles.serviceShowcaseImage} contentFit="cover" transition={120} />
+        ) : (
+          <Feather name={icon} size={24} color={colors.mutedForeground} />
+        )}
+      </View>
+      <View style={styles.serviceShowcaseBody}>
+        <View style={styles.serviceShowcaseTop}>
+          <Text style={[styles.serviceShowcaseName, { color: colors.foreground }]} numberOfLines={1}>
+            {service.name}
+          </Text>
+          <Text style={[styles.serviceShowcasePrice, { color: colors.gold }]}>
+            {formatCurrency(service.price)}
+          </Text>
+        </View>
+        <Text style={[styles.serviceShowcaseDesc, { color: colors.mutedForeground }]} numberOfLines={2}>
+          {service.description || service.category}
+        </Text>
+        <View style={styles.serviceShowcaseFooter}>
+          <View style={styles.serviceShowcaseMeta}>
+            <Feather name="clock" size={12} color={colors.mutedForeground} />
+            <Text style={[styles.serviceShowcaseMetaText, { color: colors.mutedForeground }]}>
+              {service.duration}min
+            </Text>
+          </View>
+          <View style={[styles.serviceReservePill, { backgroundColor: colors.gold }]}>
+            <Text style={[styles.serviceReserveText, { color: colors.goldForeground }]}>Reservar</Text>
+          </View>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
 function ConfirmRow({ icon, label, value, colors }: { icon: React.ComponentProps<typeof Feather>["name"]; label: string; value: string; colors: any }) {
   return (
     <View style={[confirmStyles.row, { borderBottomColor: colors.border }]}>
@@ -726,12 +775,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    gap: 12,
   },
+  headerText: { flex: 1, minWidth: 0 },
   greeting: { fontSize: 14, fontFamily: "Inter_400Regular" },
   subtitle: { fontSize: 22, fontFamily: "Inter_700Bold", marginTop: 2 },
   logoMark: {
-    width: 124,
-    height: 52,
+    width: 92,
+    height: 40,
   },
   bookBanner: {
     flexDirection: "row",
@@ -767,20 +818,30 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_700Bold",
     marginBottom: -8,
   },
-  servicesGrid: {
+  serviceList: { gap: 10 },
+  serviceShowcaseCard: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  serviceChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 12,
+    borderRadius: 16,
     borderWidth: 1,
-    gap: 4,
+    overflow: "hidden",
   },
-  serviceChipName: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
-  serviceChipPrice: { fontSize: 12, fontFamily: "Inter_700Bold" },
+  serviceShowcaseMedia: {
+    width: 112,
+    height: 120,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  serviceShowcaseImage: { width: "100%", height: "100%" },
+  serviceShowcaseBody: { flex: 1, padding: 12, gap: 8, minWidth: 0 },
+  serviceShowcaseTop: { gap: 4 },
+  serviceShowcaseName: { fontSize: 15, fontFamily: "Inter_700Bold" },
+  serviceShowcasePrice: { fontSize: 14, fontFamily: "Inter_700Bold" },
+  serviceShowcaseDesc: { fontSize: 12, lineHeight: 17, fontFamily: "Inter_400Regular" },
+  serviceShowcaseFooter: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 8, marginTop: "auto" },
+  serviceShowcaseMeta: { flexDirection: "row", alignItems: "center", gap: 4 },
+  serviceShowcaseMetaText: { fontSize: 11, fontFamily: "Inter_500Medium" },
+  serviceReservePill: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10 },
+  serviceReserveText: { fontSize: 12, fontFamily: "Inter_700Bold" },
   modal: { flex: 1 },
   modalHeader: {
     flexDirection: "row",

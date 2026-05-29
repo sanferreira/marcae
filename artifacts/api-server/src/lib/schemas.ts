@@ -35,6 +35,7 @@ export const ServiceCreate = z.object({
   loyaltyPoints: z.number().int().min(0).max(50).default(1),
   description: z.string().default(""),
   category: z.string().default("Geral"),
+  imageUrl: z.string().max(1_200_000).nullish(),
   isActive: z.boolean().default(true),
 });
 export const ServiceUpdate = ServiceCreate.partial();
@@ -81,7 +82,7 @@ export const ProfessionalCreate = z.object({
 });
 export const ProfessionalUpdate = ProfessionalCreate.partial();
 
-export const ClientCreate = z.object({
+const ClientProfile = z.object({
   name: z.string().min(1),
   phone: z.string().default(""),
   email: z.string().default(""),
@@ -93,7 +94,14 @@ export const ClientCreate = z.object({
   emergencyContact: z.string().default(""),
   intakeData: z.record(z.string().max(2000)).default({}),
 });
-export const ClientUpdate = ClientCreate.partial();
+export const ClientCreate = ClientProfile.extend({
+  password: z.string().optional(),
+});
+export const ClientUpdate = ClientProfile.partial();
+export const ClientAccessUpsert = z.object({
+  email: z.string().email("Informe um email valido.").optional(),
+  password: z.string().min(1, "Informe uma senha."),
+});
 
 export const ServiceLineSchema = z.object({
   id: z.string().uuid(),
@@ -192,4 +200,9 @@ export const SelfProfileUpdate = z.object({
   avatarImage: z.string().nullish(),
   specialty: z.string().optional(),
   bio: z.string().optional(),
+});
+
+export const AuthPasswordChange = z.object({
+  currentPassword: z.string().min(1, "Informe a senha atual."),
+  newPassword: z.string().min(1, "Informe a nova senha."),
 });

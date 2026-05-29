@@ -10,6 +10,7 @@ export const servicesTable = pgTable("services", {
   loyaltyPoints: integer("loyalty_points").notNull().default(1),
   description: text("description").notNull().default(""),
   category: text("category").notNull().default("Geral"),
+  imageUrl: text("image_url"),
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
